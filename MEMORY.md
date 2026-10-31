@@ -1,71 +1,52 @@
 # MEMORY.md — Project Memory
 
-Persistent project context for future OpenCode sessions. Keep this file concise (approximately 50 lines maximum). Update it after meaningful work and remove obsolete information.
-
-## Business Context
-
-- Business: EA electricidad y multiservicios.
-- Independent electrical installer based in Calpe, Alicante, Spain.
-- More than 20 years of professional experience.
-- Registered as a Low Voltage Electrical Installation Company, Basic Category (IBTB).
-- The business states it holds the required authorization and civil liability insurance.
-- Contact: +34 668 56 32 87 | info@ea-electricidadymultiservicios.com.
-- Working hours: Monday–Friday, 08:00–20:00. Urgent work is available during these hours with an urgency surcharge; no 24/7 service.
-
-## Business Scope
-
-- MVP service categories: new installations; electrical inspections and certificates; electrical faults and repairs; air conditioning and plumbing; electrical maintenance.
-- Confirmed service locations: Calpe, Altea, Benidorm, Benissa, and Teulada.
-- Research possible additional high-income residential areas within approximately 30 minutes' driving distance. Coverage requires business confirmation.
-- Do not advertise unconfirmed services, locations, qualifications, or regulatory claims.
-
-## Design and Content
-
-- Brand colors: primary `#00208f`, secondary `#fad951`, white `#ffffff`.
-- Existing logo: JPG. A refreshed SVG version may be explored later.
-- Real photographs of previous work will be available in future iterations.
-- The electrician may appear in selected gallery images but should not dominate the brand.
-- Website languages: Spanish (primary), English, and French.
-- Keep the i18n architecture extensible for future Russian and German support.
-
-## Technical Context
-
-- Development workflow: OpenCode + Spec-Driven Development (SDD).
-- Project documentation and agent-facing content must be written in English.
-- Specifications live under `specs/NNN-feature-name/`.
-- Each specification contains `spec.md`, `plan.md`, and `task.md`.
-- Final technology stack has not yet been approved.
-- Inspect the repository before making architectural decisions.
-
-## Decisions and Rationale
-
-- MVP priority is generating qualified quote requests.
-- No admin dashboard in the MVP: keep lead handling simple.
-- Quote notifications go to the business email and include all submitted form fields.
-- Uploaded photographs should use private storage and protected links, not large email attachments.
-- Customer acknowledgement is sent after successful submission.
-- Database persistence remains a planning decision; do not add a database without a clear need.
-- Keep the initial five service categories fixed until the business approves changes.
-
-## Learnings and Pitfalls
-
-- Never claim 24/7 emergency availability.
-- Do not invent reviews, project counts, registration numbers, insurance details, or service coverage.
-- Verify legal and regulatory wording before publishing professional claims.
-- Uploaded files require server-side validation, size limits, private storage, and a retention policy.
-- Do not treat successful form submission as proof that notification email was delivered.
+Keep concise (~50 lines). Update after meaningful work and remove obsolete information. Permanent rules live in `AGENTS.md`.
 
 ## Current State
 
-- Business requirements and initial MVP scope have been gathered.
-- Initial project instructions and memory have been defined.
-- Repository structure, framework, integrations, and implementation have not yet been verified.
+- `001-project-foundation` is implemented but uncommitted on `feat/001-project-foundation`; specs are approved in `specs/001-project-foundation/`.
+- Astro 7.4.4 static site, TypeScript strict, Tailwind CSS 4, Node 24.16.0, pnpm 12.16.1.
+- Locales `es` (default), `en`, `fr` via typed dictionaries; routes `/es/`, `/en/`, `/fr/`.
+- Pages: home, services, contact, legal (noindex), localized 404; root redirects to `/es/`.
+- SEO: canonical, hreflang + `x-default`, sitemap, staging `noindex` and disallow-all robots.
+- Container files: multi-stage `Dockerfile`, `Caddyfile`, `compose.yaml`, `Makefile`, `scripts/smoke.sh`.
+- Compose builds the image `ea-electricidad:local` from source; there is no image registry.
+- CI (`.github/workflows/ci.yml`) targets `main` and builds through `docker compose build`.
+- Docker image build not verified locally: current user lacks access to `/var/run/docker.sock`. Compose config and Make targets are verified statically.
+- Caddy runtime verified with a local Caddy 2.10.2 binary against `dist/`: all smoke assertions pass.
+- No quote form, email, uploads, database, analytics, cookies, or CMS in `001`.
+
+## Decisions
+
+- Public site remains portable static output; Caddy is the only production runtime; no Node.js.
+- Workflow: feature branch → pull request → manual review → `main`; only `main` deploys.
+- Local and VPS both build with the same `compose.yaml`/`Dockerfile`/`Makefile`; no image transfer.
+- `make deploy` (VPS only): stop → remove old image → fetch and hard-reset `origin/main` → rebuild → start with `--wait`.
+- VPS is staging/demo only: downtime and application data loss are acceptable; `caddy_data`/`caddy_config` and `Caddyfile` are preserved.
+- Rollback rebuilds a previous known-good commit, then returns to `main`.
+- Staging target: `https://<VPS_IP>.sslip.io`, conditional on trusted HTTPS; no custom domain yet.
+- Root redirect: `src/pages/index.astro` emits a static meta refresh; Caddy enforces `308` in production.
+- `i18n.routing.redirectToDefaultLocale` is `false` to avoid a duplicate-route build warning.
+- Scripts/styles stay external (`assetsInlineLimit: 0`, `inlineStylesheets: 'never'`) for strict CSP.
+- Security headers are a Caddy snippet applied to normal and error responses.
+
+## Learnings and Pitfalls
+
+- Never advertise 24/7 availability, unconfirmed coverage, or invented business claims.
+- Keep the existing `public/logo.jpg` on light surfaces; no vector/transparent asset yet.
+- `handle_errors` preserves the 404 status, but headers must be re-imported inside it.
+- Astro preview returns 404 for `/es` without a slash; Caddy adds the `308` redirect.
+- Email delivery success is not submission success; handle notification failures in `004`.
+- Never copy images to the VPS and never build outside the documented Compose path.
+- The VPS `deploy` discards tracked local edits; changes must go through Git.
+- Never use `docker compose down -v`; certificates live in the Caddy volumes.
+- Verify `sslip.io` DNS, ports 80/443, and ACME issuance before presenting staging.
+- `.agents/skills/` is installer-managed through `skills-lock.json`; do not hand-edit it.
 
 ## Next Steps
 
-- Inspect the repository and identify existing code, assets, and tooling.
-- Agree on the technology stack and deployment approach.
-- Create `specs/001-project-foundation/`.
-- Define the first implementation plan and task list.
-- Verify the logo and available project photographs.
-- Research additional service-area locations before publishing expanded coverage.
+- Commit on `feat/001-project-foundation`, push, open the PR, and let CI run.
+- Rename the GitHub default branch `master` → `main` and require review (repo-admin action).
+- Complete VPS preflight: OS, sudo/SSH, firewall, ports, DNS, and TLS feasibility.
+- Build the image + smoke on a machine with Docker access; then `make deploy` and prove rollback.
+- Acceptance-criteria status per item is recorded at the end of `specs/001-project-foundation/task.md`.

@@ -1,0 +1,57 @@
+---
+import { getEnv } from '@/config/env';
+import { site } from '@/config/site';
+import { getDictionary } from '@/i18n';
+import { canonicalUrl, alternateUrls, absoluteAssetUrl } from '@/lib/seo';
+import type { Locale } from '@/lib/routes';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  path: string;
+  noindex?: boolean;
+}
+
+const { locale, title, description, path, noindex = false } = Astro.props;
+const env = getEnv();
+const t = getDictionary(locale);
+
+const canonical = canonicalUrl(env.SITE_URL, locale, path);
+const alternates = alternateUrls(env.SITE_URL, path);
+const defaultAlternate = alternates.find((alternate) => alternate.locale === 'es');
+const image = absoluteAssetUrl(env.SITE_URL, '/logo.jpg');
+const robots = env.SITE_ENV !== 'production' || noindex ? 'noindex, nofollow' : 'index, follow';
+
+const openGraphLocales: Record<Locale, string> = {
+  es: 'es_ES',
+  en: 'en_GB',
+  fr: 'fr_FR',
+};
+---
+
+<title>{title}</title>
+<meta name="description" content={description} />
+<meta name="robots" content={robots} />
+<meta name="theme-color" content={site.colors.blue} />
+<link rel="canonical" href={canonical} />
+{alternates.map((alternate) => (
+  <link rel="alternate" hreflang={alternate.locale} href={alternate.href} />
+))}
+<link rel="alternate" hreflang="x-default" href={defaultAlternate?.href ?? canonical} />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={t.meta.siteName} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical} />
+<meta property="og:image" content={image} />
+<meta property="og:locale" content={openGraphLocales[locale]} />
+{alternates
+  .filter((alternate) => alternate.locale !== locale)
+  .map((alternate) => (
+    <meta property="og:locale:alternate" content={openGraphLocales[alternate.locale]} />
+  ))}
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={image} />

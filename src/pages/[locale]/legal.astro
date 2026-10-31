@@ -1,0 +1,44 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Container from '@/components/ui/Container.astro';
+import Section from '@/components/ui/Section.astro';
+import { getDictionary } from '@/i18n';
+import { assertLocale, localeStaticPaths } from '@/lib/routes';
+
+export function getStaticPaths() {
+  return localeStaticPaths();
+}
+
+const locale = assertLocale(Astro.params.locale);
+const t = getDictionary(locale);
+---
+
+<BaseLayout
+  locale={locale}
+  title={t.meta.legal.title}
+  description={t.meta.legal.description}
+  path="/legal/"
+  noindex
+>
+  <section class="on-dark bg-brand text-white">
+    <Container class="py-12 sm:py-16">
+      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-accent">{t.legal.eyebrow}</p>
+      <h1 class="mt-4 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl">{t.legal.title}</h1>
+      <p class="mt-5 max-w-2xl text-white/85">{t.legal.lead}</p>
+    </Container>
+  </section>
+
+  <Section>
+    <div class="max-w-3xl space-y-8">
+      <div class="rounded-card border-l-4 border-accent bg-surface-muted p-5">
+        <h2 class="text-xl font-semibold">{t.legal.pendingTitle}</h2>
+        <p class="mt-2 text-ink-muted">{t.legal.pendingText}</p>
+      </div>
+
+      <div>
+        <h2 class="text-xl font-semibold">{t.legal.privacyTitle}</h2>
+        <p class="mt-2 text-ink-muted">{t.legal.privacyText}</p>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>
