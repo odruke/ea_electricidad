@@ -1,0 +1,38 @@
+---
+import { getDictionary } from '@/i18n';
+import { localeNames, locales, swapLocale, type Locale } from '@/lib/routes';
+
+interface Props {
+  locale: Locale;
+  currentPath: string;
+  variant?: 'inline' | 'stacked';
+}
+
+const { locale, currentPath, variant = 'inline' } = Astro.props;
+const t = getDictionary(locale);
+---
+
+<nav aria-label={t.nav.languageLabel}>
+  <ul
+    class:list={['flex items-center', variant === 'inline' ? 'gap-1' : 'flex-wrap gap-x-3 gap-y-1']}
+  >
+    {locales.map((target) => (
+      <li>
+        <a
+          href={swapLocale(currentPath, target)}
+          hreflang={target}
+          lang={target}
+          aria-current={target === locale ? 'true' : undefined}
+          class:list={[
+            'rounded px-1.5 py-1 text-sm no-underline transition-colors',
+            target === locale
+              ? 'font-semibold text-brand'
+              : 'text-ink-muted hover:text-brand hover:underline',
+          ]}
+        >
+          {localeNames[target]}
+        </a>
+      </li>
+    ))}
+  </ul>
+</nav>

@@ -1,0 +1,110 @@
+---
+import { getDictionary } from '@/i18n';
+import { localizedPath, type Locale } from '@/lib/routes';
+import ButtonLink from '@/components/ui/ButtonLink.astro';
+import LanguageSwitcher from './LanguageSwitcher.astro';
+
+interface Props {
+  locale: Locale;
+  currentPath: string;
+}
+
+const { locale, currentPath } = Astro.props;
+const t = getDictionary(locale);
+
+const navItems = [
+  { key: 'home', href: localizedPath(locale, '/'), label: t.nav.home },
+  { key: 'services', href: localizedPath(locale, '/services/'), label: t.nav.services },
+  { key: 'contact', href: localizedPath(locale, '/contact/'), label: t.nav.contact },
+];
+
+function isActive(href: string): boolean {
+  if (href === localizedPath(locale, '/')) {
+    return currentPath === href;
+  }
+
+  return currentPath === href || currentPath.startsWith(href);
+}
+---
+
+<details class="group relative lg:hidden" data-mobile-nav>
+  <summary class="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-md border border-line text-brand transition-colors hover:border-brand [&::-webkit-details-marker]:hidden">
+    <span class="sr-only group-open:hidden">{t.nav.openMenu}</span>
+    <span class="sr-only hidden group-open:inline">{t.nav.closeMenu}</span>
+    <svg
+      class="h-5 w-5 group-open:hidden"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"></path>
+    </svg>
+    <svg
+      class="hidden h-5 w-5 group-open:block"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <path stroke-linecap="round" d="M6 6l12 12M18 6L6 18"></path>
+    </svg>
+  </summary>
+
+  <div class="absolute right-0 top-full z-50 mt-3 w-72 max-w-[calc(100vw-2.5rem)] rounded-card border border-line bg-white p-4 shadow-lg">
+    <nav aria-label={t.nav.menuLabel}>
+      <ul class="space-y-1">
+        {navItems.map((item) => (
+          <li>
+            <a
+              href={item.href}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              class:list={[
+                'block rounded px-3 py-2 text-base font-medium no-underline',
+                isActive(item.href)
+                  ? 'bg-surface-muted text-brand'
+                  : 'text-ink hover:bg-surface-muted hover:text-brand',
+              ]}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    <div class="mt-4 border-t border-line pt-4">
+      <LanguageSwitcher locale={locale} currentPath={currentPath} variant="stacked" />
+    </div>
+
+    <div class="mt-4">
+      <ButtonLink
+        href={localizedPath(locale, '/contact/')}
+        variant="primary"
+        class="w-full text-sm"
+      >
+        {t.cta.quote}
+      </ButtonLink>
+    </div>
+  </div>
+</details>
+
+<script>
+  document.querySelectorAll<HTMLDetailsElement>('details[data-mobile-nav]').forEach((details) => {
+    details.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('a')) {
+        details.open = false;
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && details.open) {
+        details.open = false;
+        details.querySelector<HTMLElement>('summary')?.focus();
+      }
+    });
+  });
+</script>

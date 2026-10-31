@@ -1,0 +1,86 @@
+---
+import { site } from '@/config/site';
+import { getDictionary } from '@/i18n';
+import { localizedPath, type Locale } from '@/lib/routes';
+import ButtonLink from '@/components/ui/ButtonLink.astro';
+import Container from '@/components/ui/Container.astro';
+import LanguageSwitcher from './LanguageSwitcher.astro';
+import MobileNav from './MobileNav.astro';
+
+interface Props {
+  locale: Locale;
+  currentPath: string;
+}
+
+const { locale, currentPath } = Astro.props;
+const t = getDictionary(locale);
+
+const navItems = [
+  { key: 'home', href: localizedPath(locale, '/'), label: t.nav.home },
+  { key: 'services', href: localizedPath(locale, '/services/'), label: t.nav.services },
+  { key: 'contact', href: localizedPath(locale, '/contact/'), label: t.nav.contact },
+];
+
+function isActive(href: string): boolean {
+  if (href === localizedPath(locale, '/')) {
+    return currentPath === href;
+  }
+
+  return currentPath === href || currentPath.startsWith(href);
+}
+---
+
+<header class="sticky top-0 z-40 border-b border-line bg-white">
+  <Container>
+    <div class="flex h-16 items-center justify-between gap-4">
+      <a href={localizedPath(locale, '/')} class="flex min-w-0 items-center gap-3 no-underline">
+        <img
+          src="/logo.jpg"
+          alt=""
+          width="44"
+          height="44"
+          class="h-11 w-11 shrink-0 rounded"
+          loading="eager"
+          decoding="async"
+        />
+        <span class="truncate font-display text-sm font-semibold leading-tight text-ink sm:text-base">
+          {site.name}
+        </span>
+      </a>
+
+      <nav aria-label={t.nav.menuLabel} class="hidden lg:block">
+        <ul class="flex items-center gap-1">
+          {navItems.map((item) => (
+            <li>
+              <a
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                class:list={[
+                  'rounded px-3 py-2 text-sm font-medium no-underline transition-colors',
+                  isActive(item.href)
+                    ? 'bg-surface-muted text-brand'
+                    : 'text-ink hover:bg-surface-muted hover:text-brand',
+                ]}
+              >
+                {item.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div class="hidden items-center gap-4 lg:flex">
+        <LanguageSwitcher locale={locale} currentPath={currentPath} />
+        <ButtonLink
+          href={localizedPath(locale, '/contact/')}
+          variant="primary"
+          class="px-4 py-2 text-sm"
+        >
+          {t.cta.quote}
+        </ButtonLink>
+      </div>
+
+      <MobileNav locale={locale} currentPath={currentPath} />
+    </div>
+  </Container>
+</header>

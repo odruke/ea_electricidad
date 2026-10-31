@@ -1,0 +1,28 @@
+---
+import { getDictionary } from '@/i18n';
+import type { Locale } from '@/lib/routes';
+
+interface Props {
+  locale: Locale;
+  aspect?: 'video' | 'square';
+  class?: string;
+}
+
+const { locale, aspect = 'video', class: className } = Astro.props;
+const t = getDictionary(locale);
+---
+
+<div
+  class:list={[
+    'relative overflow-hidden rounded-card border border-line bg-surface-muted',
+    aspect === 'square' ? 'aspect-square' : 'aspect-video',
+    className,
+  ]}
+>
+  <div class="placeholder-pattern absolute inset-0 opacity-20" aria-hidden="true"></div>
+  <div class="absolute inset-0 grid place-items-center p-6 text-center">
+    <span class="rounded bg-white/90 px-3 py-1 text-sm font-medium text-ink-muted">
+      {t.media.placeholderLabel}
+    </span>
+  </div>
+</div>

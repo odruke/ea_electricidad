@@ -1,0 +1,89 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ButtonLink from '@/components/ui/ButtonLink.astro';
+import Container from '@/components/ui/Container.astro';
+import Section from '@/components/ui/Section.astro';
+import { site, whatsappUrl } from '@/config/site';
+import { getDictionary } from '@/i18n';
+import { assertLocale, localeStaticPaths } from '@/lib/routes';
+
+export function getStaticPaths() {
+  return localeStaticPaths();
+}
+
+const locale = assertLocale(Astro.params.locale);
+const t = getDictionary(locale);
+const whatsappHref = whatsappUrl(t.whatsapp.message);
+
+const channels = [
+  { label: t.contact.phoneLabel, value: site.phone.display, href: site.phone.href },
+  { label: t.contact.whatsappLabel, value: site.phone.display, href: whatsappHref },
+  { label: t.contact.emailLabel, value: site.email.display, href: site.email.href },
+];
+---
+
+<BaseLayout
+  locale={locale}
+  title={t.meta.contact.title}
+  description={t.meta.contact.description}
+  path="/contact/"
+>
+  <section class="on-dark bg-brand text-white">
+    <Container class="py-14 sm:py-20">
+      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-accent">
+        {t.contact.eyebrow}
+      </p>
+      <h1 class="mt-4 max-w-3xl text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
+        {t.contact.title}
+      </h1>
+      <p class="mt-5 max-w-2xl text-lg text-white/85">{t.contact.lead}</p>
+    </Container>
+  </section>
+
+  <Section>
+    <h2 class="text-2xl font-bold sm:text-3xl">{t.contact.channelsHeading}</h2>
+
+    <ul class="mt-6 grid gap-4 sm:grid-cols-3">
+      {channels.map((channel) => (
+        <li class="rounded-card border border-line bg-white p-5">
+          <p class="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+            {channel.label}
+          </p>
+          <a href={channel.href} class="mt-2 block break-words text-lg font-semibold">
+            {channel.value}
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <div class="mt-10 grid gap-6 sm:grid-cols-2">
+      <div class="rounded-card bg-surface-muted p-5">
+        <h3 class="text-lg font-semibold">{t.contact.hoursLabel}</h3>
+        <p class="mt-2">{t.contact.hoursValue}</p>
+        <p class="mt-2 text-sm text-ink-muted">{t.contact.hoursNote}</p>
+      </div>
+      <div class="rounded-card bg-surface-muted p-5">
+        <h3 class="text-lg font-semibold">{t.contact.areaLabel}</h3>
+        <p class="mt-2">{site.serviceArea.join(', ')}</p>
+        <p class="mt-2 text-sm text-ink-muted">{t.contact.areaNote}</p>
+      </div>
+    </div>
+  </Section>
+
+  <Section tone="brand">
+    <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-2xl font-bold sm:text-3xl">{t.contact.quoteHeading}</h2>
+        <p class="mt-2 max-w-2xl text-white/85">{t.contact.quoteLead}</p>
+      </div>
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <ButtonLink href={site.phone.href} variant="accent">
+          {t.cta.call}
+        </ButtonLink>
+        <ButtonLink href={whatsappHref} variant="ghost">
+          {t.cta.whatsapp}
+        </ButtonLink>
+      </div>
+    </div>
+  </Section>
+</BaseLayout>

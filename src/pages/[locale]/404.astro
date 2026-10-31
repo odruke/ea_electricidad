@@ -1,0 +1,39 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ButtonLink from '@/components/ui/ButtonLink.astro';
+import Container from '@/components/ui/Container.astro';
+import { getDictionary } from '@/i18n';
+import { assertLocale, localizedPath, localeStaticPaths } from '@/lib/routes';
+
+export function getStaticPaths() {
+  return localeStaticPaths();
+}
+
+const locale = assertLocale(Astro.params.locale);
+const t = getDictionary(locale);
+---
+
+<BaseLayout
+  locale={locale}
+  title={t.meta.notFound.title}
+  description={t.meta.notFound.description}
+  path="/404/"
+  noindex
+>
+  <Container class="py-20 sm:py-28">
+    <p class="font-display text-6xl font-bold text-brand sm:text-8xl" aria-hidden="true">
+      {t.notFound.code}
+    </p>
+    <h1 class="mt-4 text-3xl font-bold sm:text-4xl">{t.notFound.title}</h1>
+    <p class="mt-3 max-w-xl text-lg text-ink-muted">{t.notFound.lead}</p>
+
+    <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+      <ButtonLink href={localizedPath(locale, '/')} variant="primary">
+        {t.cta.backHome}
+      </ButtonLink>
+      <ButtonLink href={localizedPath(locale, '/contact/')} variant="ghost">
+        {t.cta.quote}
+      </ButtonLink>
+    </div>
+  </Container>
+</BaseLayout>
