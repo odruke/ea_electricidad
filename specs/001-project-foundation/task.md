@@ -1,20 +1,20 @@
 # Tasks — 001 Project Foundation
 
-- Status: Approved — implementation in progress; VPS deployment pending
+- Status: Approved — implementation in progress; local stack verification pending
 - Related spec: `specs/001-project-foundation/spec.md`
 - Related plan: `specs/001-project-foundation/plan.md`
-- Branch: `feat/001-project-foundation`
-- Target: `main`
+- Branch: `feat/001-multi-container`
+- Target: owner-managed; no fixed integration branch requirement
 
 Tasks are ordered. Do not start a phase until its dependencies are satisfied. Commands listed as target scripts become available during Phase 1. Verify each task before marking it complete.
 
 ## Phase 0 — Approval and preflight
 
-- [x] **T001 — Approve the specification and plan.** Confirm scope, Astro static architecture, staging hostname, VPS assumptions, manual deployment, and branch/PR workflow. **Done when:** the owner explicitly approves all three files.
-- [ ] **T002 — Inspect the VPS.** Record OS version, CPU, RAM, disk, time synchronization, sudo access, SSH key access, firewall state, and whether ports 80/443 are reachable. **Done when:** preflight results are documented without changing the VPS.
-- [ ] **T003 — Verify staging DNS and TLS feasibility.** Confirm `<VPS_IP>.sslip.io` resolves to the VPS and that Caddy can complete an ACME challenge. **Done when:** HTTPS feasibility is confirmed or the task is blocked with a clear report.
-- [ ] **T004 — Confirm VPS compatibility.** Verify Ubuntu 24.04 LTS works with the provider image and Docker packages. If not, request approval for 22.04 LTS. **Done when:** the supported OS is recorded.
-- [ ] **T005 — Confirm the Git workflow.** Verify the GitHub repository, the `main` default branch, required pull-request review, and that the VPS will deploy only from `main`. **Done when:** the branch, protection rule, and review requirement are confirmed.
+- [x] **T001 — Approve the specification and plan.** Confirm scope, Astro static architecture, multi-container topology, local-first deployment, and owner-managed Git. **Done when:** the owner explicitly approves all three files.
+- [x] **T002 — Confirm the delivery model.** The owner handles commits, pushes, and deployment; the agent may create branches but never commits unasked. **Done when:** the workflow is recorded in `AGENTS.md`.
+- [x] **T003 — Confirm the local target.** Deployment is `make build && make up` on any Docker-capable host; no registry, no VPS-specific configuration, no CI. **Done when:** the spec and plan reflect the local-first contract.
+- [ ] **T004 — Verify host prerequisites.** Confirm Docker Engine, the Compose plugin, GNU Make, disk headroom, and time synchronization on the machine that runs the stack. **Done when:** prerequisites are confirmed by the owner.
+- [x] **T005 — Remove hosted automation.** Delete the GitHub Actions workflow and any provider-specific deployment step. **Done when:** `.github/` is gone and no document references CI or `make deploy`.
 
 ## Phase 1 — Project scaffold
 
@@ -90,78 +90,109 @@ Tasks are ordered. Do not start a phase until its dependencies are satisfied. Co
 - [x] **T805 — Cover no-JavaScript behavior.** Run navigation, language switching, and contact-link checks with JavaScript disabled. **Done when:** the site remains usable.
 - [x] **T806 — Add axe scans.** Run accessibility checks on each locale’s home, contact, and 404 pages. **Done when:** no serious or critical violations remain.
 - [x] **T807 — Add responsive checks.** Assert no horizontal overflow at 320, 375, 768, and 1280 pixels. **Done when:** all viewports pass.
-- [ ] **T808 — Add container smoke script.** Create `scripts/smoke.sh` for health, redirects, locales, localized 404, headers, assets, and absence of Node.js in the runtime image. **Done when:** the script passes against the local image.
+- [ ] **T808 — Add container smoke script.** Create `scripts/smoke.sh` for health, redirects, locales, localized 404, headers, assets, only-edge exposure, and absence of Node.js in both runtime images. **Done when:** the script passes against the local Compose stack.
 
 ## Phase 9 — Container and Caddy
 
-- [ ] **T901 — Create the multi-stage Dockerfile.** Build with Node.js 24 LTS and pnpm; serve with Caddy. **Done when:** the final image contains no Node.js runtime or source files.
-- [x] **T902 — Create the Caddyfile.** Configure TLS, compression, root redirect, trailing-slash normalization, locale 404 mapping, health endpoint, and security headers. **Done when:** curl smoke tests pass.
-- [x] **T903 — Create `compose.yaml`.** Configure the build context, staging build arguments, local image tag, restart policy, ports, volumes, health check, environment, log rotation, and least-privilege capabilities. **Done when:** `docker compose config` is valid.
-- [ ] **T904 — Build the local image.** Build with `make build` using staging `SITE_URL` and `SITE_ENV`. **Done when:** the local container serves all routes over HTTP.
+- [ ] **T901 — Create the multi-stage Dockerfile.** Build with Node.js 24 LTS and pnpm; expose `web` and `edge` targets based on Caddy. **Done when:** neither final image contains a Node.js runtime or source files.
+- [x] **T902 — Create the Caddy configuration.** Configure TLS, compression, root redirect, trailing-slash normalization, locale 404 mapping, health endpoint, and security headers. **Done when:** curl smoke tests pass. _Requires the 2026-11-01 split into edge and web configs._
+- [x] **T903 — Create `compose.yaml`.** Configure the build context, staging build arguments, local image tags, restart policy, ports, volumes, health checks, environment, log rotation, and least-privilege capabilities. **Done when:** `docker compose config` is valid. _Requires the 2026-11-01 multi-service refactor._
+- [ ] **T904 — Build the local images.** Build with `make build` using staging `SITE_URL` and `SITE_ENV`. **Done when:** the Compose stack serves all routes over HTTP through the edge.
 - [ ] **T905 — Run the smoke script.** Verify health, root redirect, trailing slash, locales, 404 status/content, headers, and `noindex`. **Done when:** every assertion passes.
-- [ ] **T906 — Verify image hygiene.** Inspect the final image for Node.js, source files, `.env` files, and build tools. **Done when:** none are present.
-- [x] **T907 — Add the Makefile.** Provide `build`, `up`, `down`, `restart`, `logs`, `status`, `deploy` and `clean`, plus `help` and `smoke`. **Done when:** `make -n` succeeds for every target and `deploy` follows the stop → remove image → sync `main` → build → start order.
+- [ ] **T906 — Verify image hygiene.** Inspect both final images for Node.js, source files, `.env` files, and build tools. **Done when:** none are present.
+- [x] **T907 — Add the Makefile.** Provide `build`, `up`, `down`, `restart`, `logs`, `status`, `smoke` and `clean`, plus `help`. **Done when:** `make -n` succeeds for every target and no target runs Git commands.
 - [x] **T908 — Preserve volumes and Caddy configuration.** Ensure no target uses `down -v` and the `caddy_data`/`caddy_config` volumes remain declared. **Done when:** the Compose file and Makefile preserve both volumes.
 
-## Phase 10 — Continuous integration
+## Phase 10 — Local verification and Git workflow
 
-- [ ] **T1001 — Add GitHub Actions.** Run install, lint, format check, type check, unit tests, build, E2E, and a Compose build plus container smoke test on pull requests and pushes to `main`. **Done when:** the workflow passes on the feature branch.
-- [ ] **T1002 — Verify frozen installs.** Ensure CI uses `pnpm install --frozen-lockfile`. **Done when:** a lockfile mismatch fails CI.
+- [x] **T1001 — Remove hosted CI.** Delete `.github/workflows/ci.yml` and document the local check sequence instead. **Done when:** no workflow file or CI reference remains.
+- [ ] **T1002 — Verify frozen installs locally.** Run `pnpm install --frozen-lockfile`. **Done when:** a lockfile mismatch fails the install. _Previously verified; re-run after the workflow change._
 - [x] **T1003 — Verify staging checks.** Run E2E with `SITE_ENV=staging` so `noindex` is exercised. **Done when:** the staging assertion fails when the directive is removed. _Verified 2026-10-30: the noindex and disallow-all robots tests fail against a production build and pass against a staging build._
 - [x] **T1004 — Verify production robots separately.** Add unit coverage for production robots output. **Done when:** production is allowed and references the sitemap. _Covered by `tests/unit/robots.test.ts`._
-- [x] **T1005 — Keep deployment manual.** Do not add an automatic deployment workflow in this phase. **Done when:** CI has no production deploy step. _`ci.yml` has no deploy, SSH, or registry-push step._
+- [x] **T1005 — Keep deployment manual.** Do not add an automatic deployment workflow or Make target; the owner deploys with `make build && make up`. **Done when:** neither CI nor the Makefile performs a deployment on its own.
+- [x] **T1006 — Record the Git contract.** Document that the owner commits, pushes, and deploys, and that agents only create `feat/NNN-name` branches. **Done when:** `AGENTS.md` and the README agree.
 
-## Phase 11 — VPS deployment
+## Phase 11 — Local deployment and portability
 
-- [ ] **T1101 — Harden the host.** Create the deploy user, install SSH keys, disable password/root SSH after verification, configure UFW for 22/80/443, enable unattended upgrades, and configure Docker log rotation. **Done when:** access works with the deploy user and only required ports are exposed.
-- [ ] **T1102 — Install Docker.** Install Docker Engine, the Compose plugin, and `git` from official repositories. Do not install Node.js or pnpm on the host. **Done when:** `docker run --rm hello-world` succeeds.
-- [ ] **T1103 — Clone and configure the deployment.** Clone the repository into `/opt/ea-electricidad/`, check out `main`, and create a mode-600 `.env` with staging `SITE_URL`, `SITE_ENV` and `SITE_ADDRESS`. **Done when:** the deploy user can run `make status` there.
-- [ ] **T1104 — Verify the on-VPS build.** Run `make build` on the VPS and confirm the Astro build completes within 1 vCPU / 2 GB without exhausting memory or disk. **Done when:** the image builds on the server.
-- [ ] **T1105 — Deploy from `main`.** Run `make deploy` after a merge into `main` and confirm it stops the service, removes the old image, syncs `main`, rebuilds, and starts the service. **Done when:** the deployment completes without manual steps.
-- [ ] **T1106 — Deploy staging.** Verify health, HTTPS, locales, redirects, headers, localized 404, and `noindex` on the staging URL. **Done when:** `make smoke BASE_URL=https://<VPS_IP>.sslip.io` passes.
-- [ ] **T1107 — Verify certificate and DNS.** Confirm a trusted certificate for `<VPS_IP>.sslip.io` and that HTTP redirects to HTTPS. **Done when:** no certificate warning or mixed content appears.
-- [ ] **T1108 — Demonstrate rollback.** Check out the previous known-good commit, run `make build && make up`, verify it, then return to `main`. **Done when:** rollback by rebuild is proven and documented.
-- [ ] **T1109 — Verify disk and resources.** Check free space, image count, build cache, log size, and service memory use. **Done when:** the VPS has comfortable headroom and `caddy_data`/`caddy_config` are intact.
+- [ ] **T1101 — Build both images locally.** Run `make build` with the host's `.env`. **Done when:** both application images build and `docker compose config` resolves them.
+- [ ] **T1102 — Start and verify the stack.** Run `make up`, `make status`, and `make smoke`. **Done when:** both services are healthy and every smoke assertion passes.
+- [ ] **T1103 — Verify the `web` container.** Confirm the container stays up and healthy instead of restarting; inspect logs if it fails. **Done when:** `docker compose ps` reports `web` as healthy over time.
+- [ ] **T1104 — Verify image hygiene.** Inspect both final images for Node.js, source files, `.env` files, and build tools. **Done when:** none are present.
+- [ ] **T1105 — Demonstrate rollback.** Check out a previous revision, run `make build && make up`, verify it, then return to the current branch. **Done when:** rollback by rebuild is proven and documented.
+- [ ] **T1106 — Verify another host.** Repeat build, start, and smoke on a second Docker-capable host with only `.env` changed. **Done when:** the stack runs unchanged there.
+- [ ] **T1107 — Verify resources and disk.** Check free space, image count, build cache, and log size. **Done when:** the host has comfortable headroom and `caddy_data`/`caddy_config` are intact.
 
 ## Phase 12 — Documentation, review, and memory
 
-- [x] **T1201 — Complete the README.** Document architecture, commands, environment values, local Compose build, Make targets, VPS deployment from `main`, rollback by rebuild, domain switching, and static-host handoff requirements. **Done when:** the documented path matches a clean run.
-- [ ] **T1202 — Document staging access.** Record the staging URL, `noindex` behavior, and known limitations without secrets. **Done when:** the owner can review the site.
+- [x] **T1201 — Complete the README.** Document architecture, commands, environment values, local Compose build, Make targets, local deployment, rollback by rebuild, portability, domain switching, and static-host handoff requirements. **Done when:** the documented path matches a clean run. _Requires the 2026-11-01 topology update and the 2026-11-02 local-first update._
+- [ ] **T1202 — Record the local verification state.** Note the host used, `.env` values in use (without secrets), and the remaining Docker-only gaps. **Done when:** the owner can reproduce the run.
 - [x] **T1203 — Review against acceptance criteria.** Walk through every criterion in `spec.md`. **Done when:** each is verified or explicitly marked blocked. _See the verification table below._
-- [ ] **T1204 — Review security and privacy.** Confirm no secrets, no data collection, no analytics, bounded logs, SSH hardening, firewall rules, and staging indexing protection. **Done when:** the checklist is complete. _Source, logs, and indexing rules verified locally; SSH hardening and firewall rules are blocked on VPS access._
-- [x] **T1205 — Update `MEMORY.md`.** Record the implemented stack, deployment path, staging URL, decisions, pitfalls, and next steps, keeping the file concise. **Done when:** the memory reflects the real state.
-- [ ] **T1206 — Open the pull request.** Target `main` from `feat/001-project-foundation` with a summary, checks performed, staging URL, rollback evidence, and known limitations. **Done when:** CI is green and the pull request is ready for review.
+- [ ] **T1204 — Review security and privacy.** Confirm no secrets, no data collection, no analytics, bounded logs, and staging indexing protection. **Done when:** the checklist is complete. _Source, logs, and indexing rules verified locally; host hardening and firewall rules are the owner's responsibility._
+- [x] **T1205 — Update `MEMORY.md`.** Record the implemented stack, deployment path, decisions, pitfalls, and next steps, keeping the file concise. **Done when:** the memory reflects the real state.
+- [ ] **T1206 — Hand off to the owner.** Provide a summary of changed files, checks actually run, and remaining limitations. **Done when:** the owner commits and deploys on their own schedule. **Do not open a pull request or push.**
 
 ## Revision 2026-10-30 — local builds, VPS builds from `main`, no registry
 
 The owner replaced the registry-based delivery with source builds: images are built with Docker Compose locally and again on the VPS, and the VPS deploys only the `main` branch. The VPS is a staging/demonstration host where downtime and application data loss are acceptable, but Caddy volumes are preserved.
 
 - [x] **T1301 — Remove the registry.** Delete every image-registry reference from Compose, documentation, tasks, and memory; require `SITE_URL` at build time. **Done when:** no registry or image-tag reference remains.
-- [x] **T1302 — Build with Compose.** Add `build.args` for `SITE_URL`/`SITE_ENV` and a local image tag in `compose.yaml`. **Done when:** `docker compose config` resolves the build.
+- [x] **T1302 — Build with Compose.** Add `build.args` for `SITE_URL`/`SITE_ENV` and local image tags in `compose.yaml`. **Done when:** `docker compose config` resolves the build.
 - [x] **T1303 — Add the Makefile.** Ship `help`, `build`, `up`, `down`, `restart`, `logs`, `status`, `smoke`, `deploy` and `clean`. **Done when:** every target passes `make -n`.
-- [x] **T1304 — Define the VPS deploy sequence.** `deploy` stops services, removes the old image, syncs `origin/main`, rebuilds, and starts with health waiting. **Done when:** the recipe order matches the approved workflow.
+- [x] **T1304 — Define the VPS deploy sequence.** `deploy` stops services, removes the previous images, syncs `origin/main`, rebuilds, and starts with health waiting. **Done when:** the recipe order matches the approved workflow. _Superseded by the 2026-11-02 revision: `deploy` was removed._
 - [x] **T1305 — Keep Caddy and volumes.** Leave `Caddyfile`, `caddy_data` and `caddy_config` unchanged and never use `down -v`. **Done when:** the Compose file and Makefile preserve both volumes.
-- [x] **T1306 — Update CI.** Trigger on pull requests and pushes to `main`, and build through `docker compose build` before the smoke test. **Done when:** the workflow uses the same build path as local and VPS deployments.
-- [ ] **T1307 — Rename the default branch.** Rename the GitHub default branch from `master` to `main` and require review before merging. **Done when:** `origin/main` exists and branch protection is enabled. _Blocked: requires repository-admin action; no push performed._
+- [x] **T1306 — Update CI.** Trigger on pull requests and pushes to `main`, and build through `docker compose build` before the smoke test. **Done when:** the workflow uses the same build path as local and VPS deployments. _Superseded by the 2026-11-02 revision: CI was deleted._
+- [ ] **T1307 — Rename the default branch.** Rename the GitHub default branch from `master` to `main` and require review before merging. **Done when:** `origin/main` exists and branch protection is enabled. _Dropped by the 2026-11-02 revision: the owner manages Git and no branch protection or CI gating is required._
 
-## Acceptance criteria verification (local, 2026-10-30)
+## Revision 2026-11-01 — multi-container topology
+
+The owner requires each service to run in its own container on a Docker network, with Caddy as the only exposed service. The static site moves into an internal `web` container; a public `edge` Caddy container terminates TLS and reverse-proxies to it. A future backend must be addable to the same network and routed through the edge without publishing another port. The backend itself is out of scope for `001`.
+
+- [x] **T1401 — Split the Caddy configuration.** Create `Caddyfile` for the public edge (TLS, compression, security headers, root and trailing-slash redirects, access logs, proxy to `web:8080`) and `Caddyfile.web` for the internal static server (files, health, localized 404 mapping). **Done when:** the edge preserves the web 404 status and body, and headers apply to proxied and error responses. _Verified with a local Caddy 2.10.2 edge+web pair: 404 status/content preserved and headers present on proxied and error responses._
+- [x] **T1402 — Add `web` and `edge` Dockerfile targets.** Produce `ea-electricidad-web:local` and `ea-electricidad-edge:local`; keep Node.js only in the build stage. **Done when:** both final images pass the hygiene check. _Targets implemented; image hygiene check **blocked** because Docker is unavailable to the current user._
+- [x] **T1403 — Refactor Compose into a multi-service stack.** Add a deterministic project name, a private `app` network, `edge` with the only published ports and Caddy volumes, and `web` with no `ports` and `expose: 8080`. Add health checks and `depends_on: condition: service_healthy`. **Done when:** `docker compose config` shows only the edge publishing ports. _`docker compose config` verified: only `edge` has ports and volumes._
+- [x] **T1404 — Update the Makefile and deploy sequence.** `build` builds both images; `deploy` removes both application images before rebuilding; `status`, `logs`, and `smoke` operate on the whole stack; volumes remain preserved. **Done when:** every target passes `make -n` and the deploy order is unchanged. _`make -n` verified for every target. `deploy` was later removed by the 2026-11-02 revision._
+- [x] **T1405 — Adapt smoke and CI to the stack.** Start the stack with `docker compose up -d --wait`, run smoke against the edge, assert the web service has no host port, verify internal DNS reachability, and check both images for Node.js. **Done when:** CI exercises the same multi-service path. _Smoke updated; the CI half is obsolete after the 2026-11-02 revision, which deleted hosted CI._
+- [x] **T1406 — Document the architecture and backend extension.** Update the README with the diagram, network and service names, exposure rules, and the step-by-step procedure for adding a future backend on `/api/*` with no host port. **Done when:** a developer can add the backend without redesigning the stack. _README updated and reviewed._
+- [x] **T1407 — Verify locally.** Run config validation, `make -n`, the full Node quality gates, and the stack smoke test where Docker access exists. **Done when:** results are recorded and Docker-only gaps are marked blocked. _Caddy configs validate; `make -n`, lint, format, check, 30 unit tests, 20 Playwright tests, build and a local edge+web Caddy smoke pass. Docker stack smoke is **blocked**._
+- [x] **T1408 — Refresh memory.** Update `MEMORY.md` and the `AGENTS.md` repository-state block with the new topology and extension point. **Done when:** both files match the implementation.
+
+## Revision 2026-11-02 — local-first delivery, owner-managed Git, no CI
+
+The owner now owns Git history and deployment: commits, pushes, and deploys happen outside the agent's work, and the agent may only create `feat/NNN-name` branches. The project targets local deployment with `make build && make up` and must stay portable to any Docker-capable host. No GitHub automation, no registry, and no VPS-specific configuration remain. `sudo` commands are run by the owner.
+
+- [x] **T1501 — Delete hosted CI.** Remove `.github/workflows/ci.yml` and the `.github/` directory. **Done when:** no CI file or workflow reference remains.
+- [x] **T1502 — Simplify the Makefile.** Remove `deploy` and every Git command; keep `help`, `build`, `up`, `down`, `restart`, `logs`, `status`, `smoke`, `clean`. **Done when:** `make -n` succeeds and no target touches Git.
+- [x] **T1503 — Neutralize `.env.example`.** Replace VPS/`sslip.io` examples with local defaults and a generic production-style example. **Done when:** no provider-specific hostname remains.
+- [x] **T1504 — Update `AGENTS.md`.** Record the owner-managed Git contract, the no-CI/no-registry rule, the local-first deploy, and the no-`sudo` rule. **Done when:** the standing instructions match the new workflow.
+- [x] **T1505 — Update the specification and plan.** Replace VPS, CI, `make deploy`, and `sslip.io` requirements with local-first, portability, and owner-managed Git requirements. **Done when:** the spec, plan, and task files agree.
+- [x] **T1506 — Update the README.** Replace the CI, VPS, deploy, and rollback sections with local checks, local deployment, portability, and rollback by rebuild. **Done when:** every documented command exists in the Makefile or `package.json`.
+- [x] **T1507 — Update `MEMORY.md`.** Record the local-first state, the open `web` container issue, and the next steps. **Done when:** the file is under ~50 lines and accurate.
+- [x] **T1508 — Verify docs consistency.** Search the repository for stale `vps`, `github`, `sslip`, `make deploy`, and `ci.yml` references. **Done when:** only intentional mentions remain. _Verified: only historical "superseded/dropped" notes and the new "no CI/VPS" statements remain._
+- [x] **T1509 — Re-run local checks.** Run `pnpm validate`, `bash -n scripts/smoke.sh`, and `make -n` after the documentation change. **Done when:** results are recorded. _`pnpm validate` and `format:check` pass; `bash -n` and `make -n` pass; `docker compose config` valid._
+- [ ] **T1510 — Fix the `web` exec failure.** Strip the `cap_net_bind_service` file capability from `/usr/bin/caddy` in both image targets, because `cap_drop: ALL` yields an empty bounding set and `execve` returns EPERM. **Done when:** `make build && make up` reports both services healthy and `make smoke` passes. _Diagnosed from owner-provided logs (`exec /usr/bin/caddy: operation not permitted`, exit 255) and upstream caddy-docker #396/#466; fix implemented, verification pending rebuild._
+
+
+## Acceptance criteria verification
 
 | # | Criterion | Status |
 |---|-----------|--------|
 | 1 | Install, lint, format, check, unit tests, E2E and build succeed | Verified locally (frozen install, 30 unit tests, 20 Playwright tests, 17-page build) |
 | 2 | Production build contains all locales, pages, sitemap, robots | Verified in `dist/` |
-| 3 | `/` redirects, unknown paths return 404 | Verified in Caddy 2.10.2 (308 redirects, localized 404 bodies with status 404) |
+| 3 | `/` redirects, unknown paths return 404 | Verified in Caddy 2.11.7 (308 redirects, localized 404 bodies with status 404) |
 | 4 | Language switcher preserves the current page | Verified by Playwright |
 | 5 | `lang`, title, description, canonical, `hreflang`, `x-default` | Verified across all 16 content pages; the root redirect stub carries canonical + `noindex` and needs no hreflang |
 | 6 | Staging emits `noindex` and a disallow-all robots file | Verified in build output and E2E negative control |
 | 7 | No hardcoded user-facing strings; translation parity | Verified by typed dictionaries and unit tests |
 | 8 | Keyboard, skip link, focus, mobile nav, contact links, axe | Verified by Playwright + axe |
-| 9 | Image builds with Compose, serves via Caddy, no Node.js, passes smoke | **Partially verified:** `docker compose config` resolves the build and the Caddy runtime passes every smoke assertion against `dist/`; the image build is **blocked** (no Docker socket access locally) |
-| 10 | VPS builds from latest `main`, HTTPS staging, no registry | **Blocked:** VPS preflight and TLS not started |
-| 11 | VPS exposes only required ports, SSH keys, bounded logs | **Blocked:** bounded log config exists in `compose.yaml`; host hardening pending |
-| 12 | Previous commit can be rebuilt and redeployed as rollback | **Blocked:** no deployment yet |
-| 13 | CI passes on the feature branch and pull request into `main` | **Blocked:** branch is not pushed, so CI has not run |
-| 14 | README documents setup, deployment, rollback, env, Make targets, domain switch | Verified by review |
-| 15 | No database, CMS, analytics, quote form, email, uploads, or secrets | Verified: none present in `package.json`, source, or build output |
-| 16 | Makefile targets exist and work locally and on the VPS | Verified statically with `make -n`; runtime verification **blocked** without Docker access |
-| 17 | `down`/`deploy`/`clean` preserve Caddy config and volumes | Verified by review: no target uses `down -v` |
+| 9 | Separate `edge`/`web` images build with Compose; no Node.js | **Blocked:** Docker unavailable locally; targets implemented and `docker compose config` resolves both |
+| 10 | Both services on one private network, communicating by DNS | Implemented (`app` network, `depends_on`); runtime verification **blocked** by Docker access |
+| 11 | Only the edge publishes host ports; web unreachable from host | Verified in `docker compose config`: only `edge` has `ports`; runtime verification **blocked** |
+| 12 | Edge serves redirects, locales, localized 404 status, headers, compression | Verified with a local Caddy 2.11.7 edge+web pair against `dist/` |
+| 13 | `make build` produces both images with no registry or image transfer; `make up && make smoke` pass | **Blocked:** Docker unavailable to the agent; `docker compose config` resolves both images |
+| 14 | Only edge ports are published; web unreachable; both services healthy | Topology verified in `docker compose config`; runtime health was **blocked** by the Caddy file-capability/`exec` failure, fixed in the Dockerfile pending rebuild |
+| 15 | A previous known-good revision can be rebuilt and started as rollback | **Blocked:** no owner-run deployment yet |
+| 16 | Same files and targets work unchanged on another Docker-capable host | **Blocked:** no second host verified; no provider-specific config remains |
+| 17 | README documents setup, local deployment, rollback, portability, topology, backend extension | Verified by review |
+| 18 | Makefile exposes `build`, `up`, `down`, `restart`, `logs`, `status`, `smoke`, `clean` and contains no Git commands | Verified with `make -n`; runtime verification **blocked** without Docker access |
+| 19 | `down`/`clean` preserve Caddy config and volumes | Verified by review: volumes attach only to `edge`; no target uses `down -v` |
+| 20 | No backend, database, CMS, analytics, form, email, uploads, or secrets | Verified: none present in source or build output; `/api/*` and the `app` network are documented extension points only |

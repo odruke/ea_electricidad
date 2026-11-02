@@ -10,12 +10,14 @@ Compact standing instructions for OpenCode agents. `MEMORY.md` holds current sta
 
 ## Current repository state
 
-- `specs/001-project-foundation/` is implemented but uncommitted on `feat/001-project-foundation`; the GitHub default branch is still `master` and must be renamed to `main`.
+- `specs/001-project-foundation/` is implemented but uncommitted; the 2026-11-01 multi-container revision and the 2026-11-02 local-first revision are on `feat/001-multi-container`. The owner handles commits, pushes, and deployment.
 - Stack: Astro 7.4.4 static output, TypeScript strict, Tailwind 4, pnpm 12.16.1, Node 24.16.0.
 - Commands: `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm check`, `pnpm lint`, `pnpm format:check`, `pnpm test`, `pnpm test:e2e`, `pnpm validate`.
-- Container workflow: `compose.yaml`, `Dockerfile`, `Caddyfile`, `Makefile` (`build`, `up`, `down`, `restart`, `logs`, `status`, `smoke`, `deploy`, `clean`), `scripts/smoke.sh`.
-- No image registry: Compose builds `ea-electricidad:local` locally and on the VPS; the VPS deploys only `main` via `make deploy`.
-- Local Docker access is unavailable to the current user; image build, `make up`, and smoke in a container are unverified.
+- Container workflow: `compose.yaml` (`edge` + `web` on the private `app` network), `Dockerfile` (`web`/`edge` targets), `Caddyfile` (public edge), `Caddyfile.web` (internal static server), `Makefile` (`build`, `up`, `down`, `restart`, `logs`, `status`, `smoke`, `clean`), `scripts/smoke.sh`.
+- Only `edge` publishes ports; `web` uses `expose: 8080` and is unreachable from the host. `/api/*` is reserved for the future backend.
+- No image registry and no CI: Compose builds `ea-electricidad-edge:local` and `ea-electricidad-web:local` on the machine that runs the stack; local deployment is `make build && make up`.
+- The `web` crash loop is diagnosed: the official Caddy image sets a file capability that makes `exec` fail under `cap_drop: ALL`; both image targets now strip it. Rebuild with `make build && make up` and verify.
+- Local Docker access is unavailable to the agent; image build, `make up`, stack smoke, and topology checks must be run by the owner.
 - Do not add a database, admin dashboard, or authentication unless an approved specification requires it.
 - `.agents/skills/` is installer-managed and pinned by `skills-lock.json`; don't hand-edit installed skills. Installed: `find-skills`, `frontend-design`, `seo-audit`.
 - `.gitignore` exists and must keep excluding dependencies, build output, and `.env` files.
@@ -23,11 +25,20 @@ Compact standing instructions for OpenCode agents. `MEMORY.md` holds current sta
 ## Workflow (spec-driven)
 
 - Meaningful work: create `specs/NNN-feature-name/` with `spec.md` (requirements, acceptance criteria, edge cases), `plan.md` (approach, trade-offs, dependencies), and `task.md` (ordered, verifiable tasks).
-- Use sequential zero-padded ids; the next expected directory is `001-project-foundation`.
+- Use sequential zero-padded ids; `001-project-foundation` exists, so the next expected directory is `002-homepage`.
 - Write or update the spec before implementing, and record significant technical trade-offs in `plan.md`.
 - Ask when business, legal, or technical requirements are unclear. Record assumptions explicitly and mark unconfirmed decisions `PENDING`; never silently invent requirements.
 - Do not start substantial implementation while the spec or plan is incomplete.
 - Small maintenance changes need proportional documentation, not a new spec.
+
+## Git and deployment
+
+- The owner owns Git history and deployment: they add, commit, push, and deploy.
+- Agents may create feature branches (`feat/NNN-name`) and must not run `git add`, `git commit`, `git push`, `git rebase`, or `git reset` unless explicitly asked.
+- Commit only when explicitly requested, with a meaningful message describing the change.
+- Do not add GitHub automation: no CI workflows, no GitHub API clients, no release or branch-protection tooling.
+- Work local-first: deploy locally with `make build && make up`. Keep the stack portable to any Docker-capable host and avoid provider-specific configuration.
+- Never run `sudo`. When a privileged command is needed for verification, ask the owner to run it and explain what output to share.
 
 ## Language
 
