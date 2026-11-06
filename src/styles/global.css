@@ -9,6 +9,9 @@
   --color-ink-muted: #4a5568;
   --color-line: #d7dce7;
   --color-surface-muted: #f4f6fb;
+  --color-whatsapp: #25d366;
+  --color-whatsapp-strong: #1ebe5a;
+  --color-whatsapp-ink: #052e16;
 
   --font-sans:
     'Source Sans 3 Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -16,6 +19,7 @@
     'Space Grotesk Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   --radius-card: 0.75rem;
+  --radius-panel: 0.25rem;
 }
 
 @layer base {
@@ -66,6 +70,183 @@
   background-image: linear-gradient(135deg, var(--color-brand) 0 2px, transparent 2px 14px);
 }
 
+/* Hero landscape: keep the photo legible behind the translucent copy panel. */
+.hero-scrim {
+  background: linear-gradient(
+    to top,
+    rgb(0 32 143 / 0.94) 0%,
+    rgb(0 32 143 / 0.8) 40%,
+    rgb(0 32 143 / 0.48) 68%,
+    rgb(0 32 143 / 0.22) 100%
+  );
+}
+
+@media (min-width: 64rem) {
+  .hero-scrim {
+    background: linear-gradient(
+      90deg,
+      rgb(0 32 143 / 0.86) 0%,
+      rgb(0 32 143 / 0.64) 42%,
+      rgb(0 32 143 / 0.24) 68%,
+      rgb(0 32 143 / 0.12) 100%
+    );
+  }
+}
+
+/* Work slideshow: native horizontal scroller, progressively enhanced by home-slideshow.ts. */
+.work-slideshow {
+  --slideshow-gap: 0.75rem;
+  position: relative;
+}
+
+.work-slideshow-track {
+  display: flex;
+  gap: var(--slideshow-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  transition:
+    opacity 650ms cubic-bezier(0.22, 1, 0.36, 1),
+    translate 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Right-to-left fade handoff: vanish left, jump invisibly, appear from the right. */
+.work-slideshow-track.is-leaving {
+  opacity: 0;
+  translate: -1.5% 0;
+  transition:
+    opacity 450ms cubic-bezier(0.55, 0, 0.55, 0.2),
+    translate 450ms cubic-bezier(0.55, 0, 0.55, 0.2);
+}
+
+.work-slideshow-track.is-entering {
+  opacity: 0;
+  translate: 1.5% 0;
+  transition: none;
+}
+
+.work-slideshow-track::-webkit-scrollbar {
+  display: none;
+}
+
+/* Without JavaScript the native scroller is the only control, so keep its scrollbar. */
+.work-slideshow:not(.slideshow-ready) .work-slideshow-track {
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin;
+}
+
+.work-slide {
+  flex: 0 0 100%;
+  aspect-ratio: 3 / 4;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  background: var(--color-brand-strong);
+  scroll-snap-align: start;
+}
+
+@media (min-width: 64rem) {
+  .work-slide {
+    flex-basis: calc(50% - (var(--slideshow-gap) / 2));
+  }
+
+  /* An odd image count ends on a lone slide: give the track room to reach it. */
+  .work-slideshow[data-odd] .work-slideshow-track::after {
+    content: '';
+    flex: 0 0 calc(50% - (var(--slideshow-gap) / 2));
+  }
+}
+
+/* Slide reveals: only active after the homepage script adds `js` and marks each element ready. */
+[data-reveal] {
+  --reveal-x: 0rem;
+  --reveal-y: 1.5rem;
+  --reveal-delay: 0ms;
+  --reveal-clip: inset(0 0 8% 0);
+}
+
+[data-reveal='left'] {
+  --reveal-x: -1rem;
+  --reveal-y: 0rem;
+  --reveal-clip: inset(0 8% 0 0);
+}
+
+[data-reveal='right'] {
+  --reveal-x: 1rem;
+  --reveal-y: 0rem;
+  --reveal-clip: inset(0 0 0 8%);
+}
+
+.reveal-stagger > :nth-child(2) {
+  --reveal-delay: 90ms;
+}
+
+.reveal-stagger > :nth-child(3) {
+  --reveal-delay: 180ms;
+}
+
+.reveal-stagger > :nth-child(4) {
+  --reveal-delay: 270ms;
+}
+
+.reveal-stagger > :nth-child(5) {
+  --reveal-delay: 360ms;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.js [data-reveal-ready='true'] {
+    opacity: 0;
+    translate: var(--reveal-x) var(--reveal-y);
+    clip-path: var(--reveal-clip);
+    transition:
+      opacity 1500ms cubic-bezier(0.4, 0, 0.2, 1) var(--reveal-delay),
+      translate 1500ms cubic-bezier(0.4, 0, 0.2, 1) var(--reveal-delay),
+      clip-path 1800ms cubic-bezier(0.4, 0, 0.2, 1) var(--reveal-delay);
+  }
+
+  html.js [data-reveal-ready='true'].is-visible {
+    opacity: 1;
+    translate: 0 0;
+    clip-path: inset(0);
+  }
+
+  html.js [data-reveal-ready='true'].is-revealed {
+    clip-path: none;
+  }
+
+  @keyframes hero-image-in {
+    from {
+      opacity: 0.4;
+      scale: 1.04;
+    }
+
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
+  @keyframes hero-copy-in {
+    from {
+      translate: -1.5rem 0;
+    }
+
+    to {
+      translate: 0 0;
+    }
+  }
+
+  html.js .hero-media {
+    animation: hero-image-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  html.js .hero-copy {
+    animation: hero-copy-in 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
 .skip-link {
   position: absolute;
   left: -9999px;
@@ -93,5 +274,25 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  html.js .hero-media,
+  html.js .hero-copy {
+    animation: none !important;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    translate: none !important;
+    clip-path: none !important;
+    transition: none !important;
+  }
+
+  .work-slideshow-track,
+  .work-slideshow-track.is-leaving,
+  .work-slideshow-track.is-entering {
+    opacity: 1 !important;
+    translate: none !important;
+    transition: none !important;
   }
 }

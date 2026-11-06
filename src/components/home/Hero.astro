@@ -1,0 +1,70 @@
+---
+import ButtonLink from '@/components/ui/ButtonLink.astro';
+import Container from '@/components/ui/Container.astro';
+import { getDictionary } from '@/i18n';
+import { localizedPath, type Locale } from '@/lib/routes';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getDictionary(locale);
+const contactHref = localizedPath(locale, '/contact/');
+const servicesHref = localizedPath(locale, '/services/');
+
+const facts = [t.home.facts.experience, t.home.facts.authorization, t.home.facts.insurance];
+---
+
+<section class="on-dark relative isolate overflow-hidden bg-brand text-white" data-testid="hero">
+  <img
+    src="/homepage/hero.jpg"
+    alt={t.home.heroImageAlt}
+    width="4898"
+    height="3265"
+    loading="eager"
+    fetchpriority="high"
+    decoding="async"
+    class="hero-media absolute inset-0 -z-20 h-full w-full object-cover object-[50%_50%] lg:object-[50%_45%]"
+  />
+  <div class="hero-scrim absolute inset-0 -z-10" aria-hidden="true"></div>
+
+  <Container class="relative">
+    <div class="flex min-h-[33rem] items-end pb-5 pt-16 sm:min-h-[31rem] sm:pb-8 lg:min-h-[28rem] lg:items-center lg:py-10">
+      <div class="hero-copy w-full max-w-2xl border-l-4 border-accent bg-brand/80 p-5 backdrop-blur-[2px] sm:p-7 lg:max-w-[42rem] lg:p-8">
+        <p class="text-sm font-semibold text-accent">{t.home.eyebrow}</p>
+        <h1 class="mt-3 text-[clamp(2.15rem,3.4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.025em]">
+          {t.home.title}
+        </h1>
+        <p class="mt-4 max-w-[58ch] text-base leading-relaxed text-white/90 sm:text-lg">
+          {t.home.lead}
+        </p>
+
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+          <ButtonLink href={contactHref} variant="accent">
+            {t.cta.quote}
+          </ButtonLink>
+          <ButtonLink href={servicesHref} variant="outline-light">
+            {t.cta.viewServices}
+          </ButtonLink>
+        </div>
+      </div>
+    </div>
+  </Container>
+</section>
+
+<div class="on-dark border-b border-white/15 bg-brand text-white">
+  <Container>
+    <ul
+      class="grid divide-y divide-white/15 py-1 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
+      data-testid="credential-rail"
+    >
+      {facts.map((fact) => (
+        <li class="flex items-center gap-3 py-3 pr-4 text-sm text-white/90 sm:px-5 sm:first:pl-0 sm:last:pr-0">
+          <span class="h-2 w-2 shrink-0 bg-accent" aria-hidden="true" />
+          <span>{fact}</span>
+        </li>
+      ))}
+    </ul>
+  </Container>
+</div>

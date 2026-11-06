@@ -55,14 +55,54 @@ export const fr = {
       authorization: 'Installateur basse tension (IBTB de base)',
       insurance: 'Assurance responsabilité civile',
     },
-    servicesHeading: 'Services',
-    servicesLead:
-      "Cinq domaines d'intervention pour les logements, les locaux et les petites installations.",
     contactHeading: 'Dites-nous ce dont vous avez besoin',
     contactLead:
       "Appelez-nous, écrivez sur WhatsApp ou envoyez un e-mail. Nous répondons pendant les heures d'ouverture.",
-    placeholderNote:
-      'De vraies photos de chantiers seront affichées ici dès qu’elles seront disponibles.',
+    heroImageAlt: 'Vue du Peñón de Calpe et de la côte.',
+    work: {
+      categories: {
+        ilumination: {
+          title: 'Éclairage',
+          lead: 'Éclairage intérieur et extérieur, points lumineux et prises.',
+          bullets: [
+            'Points lumineux, prises et interrupteurs',
+            'Éclairage intérieur et extérieur',
+            'Remplacement de luminaires et mécanismes',
+            'Installation de rubans LED',
+          ],
+          imageAlt:
+            'Travaux d’éclairage réalisés par EA electricidad y multiservicios, photo {current} sur {total}.',
+        },
+        electricity: {
+          title: 'Électricité',
+          lead: 'Installations, tableaux, pannes et contrôles.',
+          bullets: [
+            'Installations neuves et rénovations',
+            'Tableaux électriques et protections',
+            'Recherche de pannes et réparations',
+            'Contrôles et certificats',
+          ],
+          imageAlt:
+            'Travaux électriques réalisés par EA electricidad y multiservicios, photo {current} sur {total}.',
+        },
+        climatization: {
+          title: 'Climatisation',
+          lead: 'Climatisation, entretien et plomberie de base.',
+          bullets: [
+            'Installation de climatisation',
+            'Entretien et nettoyage des équipements',
+            'Plomberie de base',
+            'Chauffe-eau et petits travaux d’eau',
+          ],
+          imageAlt:
+            'Travaux de climatisation réalisés par EA electricidad y multiservicios, photo {current} sur {total}.',
+        },
+      },
+      slideshow: {
+        stageLabel:
+          'Galerie : {category}. Cliquez ou appuyez sur Espace pour mettre en pause ou reprendre.',
+      },
+    },
   },
   services: {
     eyebrow: 'Services',
@@ -134,7 +174,6 @@ export const fr = {
     lead: "La page demandée n'existe pas ou a changé d'adresse.",
   },
   footer: {
-    tagline: 'Installations électriques et multiservices à Calpe.',
     contactHeading: 'Contact',
     hoursHeading: 'Horaires',
     areaHeading: "Zone d'intervention",

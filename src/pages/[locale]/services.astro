@@ -60,10 +60,10 @@ const services = getServiceItems(t);
         <p class="mt-2 max-w-xl text-ink-muted">{t.services.ctaLead}</p>
       </div>
       <div class="flex flex-col gap-3 sm:flex-row">
-        <ButtonLink href={site.phone.href} variant="primary">
+        <ButtonLink href={site.phone.href} variant="accent" icon="phone">
           {t.cta.call}
         </ButtonLink>
-        <ButtonLink href={whatsappUrl(t.whatsapp.message)} variant="ghost">
+        <ButtonLink href={whatsappUrl(t.whatsapp.message)} variant="whatsapp" icon="whatsapp">
           {t.cta.whatsapp}
         </ButtonLink>
       </div>

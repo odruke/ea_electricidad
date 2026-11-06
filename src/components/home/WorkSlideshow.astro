@@ -1,0 +1,56 @@
+---
+import { getDictionary } from '@/i18n';
+import type { WorkCategoryKey, WorkImage } from '@/lib/home-work';
+import type { Locale } from '@/lib/routes';
+
+interface Props {
+  locale: Locale;
+  categoryKey: WorkCategoryKey;
+  title: string;
+  images: readonly WorkImage[];
+}
+
+const { locale, categoryKey, title, images } = Astro.props;
+const t = getDictionary(locale);
+const labels = t.home.work.slideshow;
+const category = t.home.work.categories[categoryKey];
+
+const stageLabel = labels.stageLabel.replace('{category}', title);
+const hasOddSlideCount = images.length % 2 === 1;
+
+function imageAlt(index: number): string {
+  return category.imageAlt
+    .replace('{current}', String(index + 1))
+    .replace('{total}', String(images.length));
+}
+---
+
+<div
+  class="work-slideshow"
+  data-slideshow
+  data-interval="8000"
+  data-odd={hasOddSlideCount ? 'true' : undefined}
+  data-testid={`slideshow-${categoryKey}`}
+>
+  <div
+    class="work-slideshow-track"
+    data-slideshow-track
+    tabindex="0"
+    role="group"
+    aria-label={stageLabel}
+  >
+    {images.map((image, index) => (
+      <figure class="work-slide" data-slideshow-slide>
+        <img
+          src={image.src}
+          alt={imageAlt(index)}
+          width={image.width}
+          height={image.height}
+          loading="lazy"
+          decoding="async"
+          class="h-full w-full object-cover"
+        />
+      </figure>
+    ))}
+  </div>
+</div>
