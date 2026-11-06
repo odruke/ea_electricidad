@@ -53,12 +53,54 @@ export const es = {
       authorization: 'Instalador de baja tensión (IBTB básica)',
       insurance: 'Seguro de responsabilidad civil',
     },
-    servicesHeading: 'Servicios',
-    servicesLead: 'Cinco áreas de trabajo para viviendas, locales y pequeñas instalaciones.',
     contactHeading: 'Cuéntenos qué necesita',
     contactLead:
       'Llámenos, escriba por WhatsApp o envíe un correo. Le responderemos dentro del horario de atención.',
-    placeholderNote: 'Aquí se mostrarán fotografías reales de trabajos cuando estén disponibles.',
+    heroImageAlt: 'Vista del Peñón de Calpe y la costa.',
+    work: {
+      categories: {
+        ilumination: {
+          title: 'Iluminación',
+          lead: 'Luz interior y exterior, puntos de luz y tomas de corriente.',
+          bullets: [
+            'Puntos de luz, enchufes e interruptores',
+            'Iluminación interior y exterior',
+            'Cambio de luminarias y mecanismos',
+            'Instalación de tiras LED',
+          ],
+          imageAlt:
+            'Trabajo de iluminación realizado por EA electricidad y multiservicios, foto {current} de {total}.',
+        },
+        electricity: {
+          title: 'Electricidad',
+          lead: 'Instalaciones, cuadros eléctricos, averías y revisiones.',
+          bullets: [
+            'Instalaciones nuevas y reformas',
+            'Cuadros eléctricos y protecciones',
+            'Búsqueda de averías y reparaciones',
+            'Revisiones y certificados',
+          ],
+          imageAlt:
+            'Trabajo eléctrico realizado por EA electricidad y multiservicios, foto {current} de {total}.',
+        },
+        climatization: {
+          title: 'Climatización',
+          lead: 'Aire acondicionado, mantenimiento y fontanería básica.',
+          bullets: [
+            'Instalación de aire acondicionado',
+            'Mantenimiento y limpieza de equipos',
+            'Fontanería básica',
+            'Termos y pequeños trabajos de agua',
+          ],
+          imageAlt:
+            'Trabajo de climatización realizado por EA electricidad y multiservicios, foto {current} de {total}.',
+        },
+      },
+      slideshow: {
+        stageLabel:
+          'Galería de {category}. Pulse o use la barra espaciadora para pausar o reanudar.',
+      },
+    },
   },
   services: {
     eyebrow: 'Servicios',
@@ -130,7 +172,6 @@ export const es = {
     lead: 'La página que busca no existe o ha cambiado de dirección.',
   },
   footer: {
-    tagline: 'Instalaciones eléctricas y multiservicios en Calpe.',
     contactHeading: 'Contacto',
     hoursHeading: 'Horario',
     areaHeading: 'Zona de servicio',

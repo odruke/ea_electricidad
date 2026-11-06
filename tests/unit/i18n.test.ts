@@ -47,6 +47,33 @@ describe('translation dictionaries', () => {
     expect(fr).toBeTypeOf('object');
   });
 
+  it('keeps exactly five service categories and three work categories with four bullets each', () => {
+    expect(Object.keys(es.services.items)).toHaveLength(5);
+
+    const categories = Object.entries(es.home.work.categories);
+    expect(categories.map(([key]) => key)).toEqual(['ilumination', 'electricity', 'climatization']);
+
+    for (const [, category] of categories) {
+      expect(category.bullets).toHaveLength(4);
+    }
+  });
+
+  it('keeps the slideshow copy templates intact', () => {
+    for (const dictionary of Object.values(dictionaries)) {
+      expect(dictionary.home.work.slideshow.stageLabel).toContain('{category}');
+      expect(dictionary.home.work.slideshow).not.toHaveProperty('status');
+      expect(dictionary.home.work.slideshow).not.toHaveProperty('previous');
+      expect(dictionary.home.work.slideshow).not.toHaveProperty('next');
+      expect(dictionary.home.work.slideshow).not.toHaveProperty('pause');
+      expect(dictionary.home.work.slideshow).not.toHaveProperty('play');
+
+      for (const category of Object.values(dictionary.home.work.categories)) {
+        expect(category.imageAlt).toContain('{current}');
+        expect(category.imageAlt).toContain('{total}');
+      }
+    }
+  });
+
   it('does not advertise 24/7 availability', () => {
     for (const dictionary of Object.values(dictionaries)) {
       for (const value of flattenStrings(dictionary).values()) {

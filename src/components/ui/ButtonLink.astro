@@ -1,26 +1,35 @@
 ---
+import IconPhone from './icons/IconPhone.astro';
+import IconWhatsApp from './icons/IconWhatsApp.astro';
+
 interface Props {
   href: string;
-  variant?: 'primary' | 'accent' | 'ghost';
+  variant?: 'primary' | 'accent' | 'ghost' | 'outline-light' | 'whatsapp';
+  icon?: 'whatsapp' | 'phone';
   class?: string;
 }
 
-const { href, variant = 'primary', class: className } = Astro.props;
+const { href, variant = 'primary', icon, class: className } = Astro.props;
 
 const variants = {
   primary: 'bg-brand text-white hover:bg-brand-strong',
   accent: 'bg-accent text-brand hover:bg-accent-strong',
   ghost: 'border border-line bg-white text-brand hover:border-brand',
+  'outline-light': 'border border-white/40 text-white hover:border-white hover:bg-white/10',
+  whatsapp: 'bg-whatsapp text-whatsapp-ink hover:bg-whatsapp-strong',
 } as const;
 ---
 
 <a
   href={href}
+  data-variant={variant}
   class:list={[
-    'inline-flex items-center justify-center gap-2 rounded-md px-5 py-3 text-base font-semibold no-underline transition-colors',
+    'inline-flex items-center justify-center gap-2 rounded-panel px-5 py-3 text-base font-semibold no-underline transition-[background-color,color]',
     variants[variant],
     className,
   ]}
 >
+  {icon === 'whatsapp' && <IconWhatsApp />}
+  {icon === 'phone' && <IconPhone />}
   <slot />
 </a>

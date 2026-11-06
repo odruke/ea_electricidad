@@ -1,12 +1,18 @@
+name: ea-electricidad
+
 services:
-  web:
-    image: ea-electricidad:local
+  # Public entry point. Terminates TLS, applies headers and redirects, and
+  # proxies site traffic to the internal web service. This is the only service
+  # that publishes host ports.
+  edge:
+    image: ea-electricidad-edge:local
     build:
       context: .
-      args:
-        SITE_URL: ${SITE_URL:?SITE_URL is required (see .env.example)}
-        SITE_ENV: ${SITE_ENV:-staging}
+      target: edge
     restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
     ports:
       - '80:80'
       - '443:443'
@@ -17,11 +23,13 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/healthz']
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8081/healthz']
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+    networks:
+      - app
     logging:
       driver: json-file
       options:
@@ -33,6 +41,41 @@ services:
       - ALL
     cap_add:
       - NET_BIND_SERVICE
+
+  # Internal static site. Reserved for the future backend: same network, no
+  # published ports, routed through the edge (see Caddyfile).
+  web:
+    image: ea-electricidad-web:local
+    build:
+      context: .
+      target: web
+      args:
+        SITE_URL: ${SITE_URL:?SITE_URL is required (see .env.example)}
+        SITE_ENV: ${SITE_ENV:-staging}
+    restart: unless-stopped
+    expose:
+      - '8080'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8080/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+networks:
+  app:
+    driver: bridge
 
 volumes:
   caddy_data:

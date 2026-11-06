@@ -14,8 +14,8 @@
 	}
 }
 
-# Liveness endpoint for container orchestration. Not published publicly.
-http://:8080 {
+# Liveness endpoint for the edge container. Not published to the host.
+http://:8081 {
 	respond /healthz "ok" 200
 	respond 404
 }
@@ -24,8 +24,6 @@ http://:8080 {
 	encode zstd gzip
 
 	import security_headers
-
-	root * /srv
 
 	@health path /healthz
 	respond @health "ok" 200
@@ -37,14 +35,24 @@ http://:8080 {
 		not path */
 		not path *.*
 		not path /healthz
+		not path /api
+		not path /api/*
 	}
 	redir @missingSlash {path}/ 308
 
 	@immutable path /_astro/*
 	header @immutable Cache-Control "public, max-age=31536000, immutable"
 
-	try_files {path} {path}/ {path}/index.html
-	file_server
+	# Future backend (004): add a `backend` service to the `app` network, then
+	# replace the single proxy below with these ordered handlers.
+	#
+	# handle /api/* {
+	# 	reverse_proxy backend:3000
+	# }
+	# handle {
+	# 	reverse_proxy web:8080
+	# }
+	reverse_proxy web:8080
 
 	log {
 		output stdout
@@ -52,31 +60,7 @@ http://:8080 {
 	}
 
 	handle_errors {
-		@es path /es/*
-		handle @es {
-			import security_headers
-			rewrite * /es/404/index.html
-			file_server
-		}
-
-		@en path /en/*
-		handle @en {
-			import security_headers
-			rewrite * /en/404/index.html
-			file_server
-		}
-
-		@fr path /fr/*
-		handle @fr {
-			import security_headers
-			rewrite * /fr/404/index.html
-			file_server
-		}
-
-		handle {
-			import security_headers
-			rewrite * /es/404/index.html
-			file_server
-		}
+		import security_headers
+		respond "{err.status_code} {err.status_text}" {err.status_code}
 	}
 }

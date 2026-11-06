@@ -1,0 +1,40 @@
+{
+	admin off
+	auto_https off
+}
+
+# Internal static server. Only reachable from the private Compose network.
+:8080 {
+	root * /srv
+
+	@health path /healthz
+	respond @health "ok" 200
+
+	try_files {path} {path}/ {path}/index.html
+	file_server
+
+	handle_errors {
+		@es path /es/*
+		handle @es {
+			rewrite * /es/404/index.html
+			file_server
+		}
+
+		@en path /en/*
+		handle @en {
+			rewrite * /en/404/index.html
+			file_server
+		}
+
+		@fr path /fr/*
+		handle @fr {
+			rewrite * /fr/404/index.html
+			file_server
+		}
+
+		handle {
+			rewrite * /es/404/index.html
+			file_server
+		}
+	}
+}

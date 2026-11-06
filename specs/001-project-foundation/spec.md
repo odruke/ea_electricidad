@@ -2,17 +2,20 @@
 
 - Status: Approved — implementation in progress
 - Date: 2026-10-30
-- Revision: 2026-10-30 — local Compose builds, VPS builds from `main`, no image registry
-- Branch: `feat/001-project-foundation`
-- Target branch: `main`
+- Revision: 2026-11-02 — local-first delivery, owner-managed Git, no CI or registry
+- Previous revision: 2026-11-01 — multi-container topology with a private Docker network and a Caddy edge proxy
+- Branch: `feat/001-multi-container`
+- Target branch: owner-managed; no fixed integration branch requirement
 - Depends on: none
 - Enables: `002-homepage`, `003-services`, `004-quote-request`
 
 ## 1. Purpose
 
-Establish a deployable, multilingual, statically generated website foundation for **EA electricidad y multiservicios**. The foundation must prove the stack, localization model, brand shell, SEO and accessibility baseline, quality gates, and static deployment path so later specifications can add content and the quote form without rework.
+Establish a deployable, multilingual, statically generated website foundation for **EA electricidad y multiservicios**. The foundation must prove the stack, localization model, brand shell, SEO and accessibility baseline, quality gates, and container deployment path so later specifications can add content and the quote form without rework.
 
-This specification does not deliver the finished marketing site, the quote form, or any email/upload capability.
+The runtime is prepared as a multi-container system: Caddy is the single public edge and only exposed service, while the static site runs in its own internal container. A future backend must be addable to the same private network and routed through Caddy without changing the public entry point or publishing another port.
+
+This specification does not deliver the finished marketing site, the quote form, any email/upload capability, or the backend itself.
 
 ## 2. Goals
 
@@ -20,9 +23,9 @@ This specification does not deliver the finished marketing site, the quote form,
 - **G2 — Multilingual shell:** Serve Spanish, English, and French under explicit locale-prefixed URLs with a route-preserving language switcher.
 - **G3 — Brand foundation:** Implement the approved palette, typography, layout shell, responsive navigation, and contact calls to action.
 - **G4 — Discoverability and access:** Provide localized metadata, canonical URLs, `hreflang`, sitemap, robots rules, semantic structure, keyboard access, and an automated accessibility check.
-- **G5 — Reproducible deployment:** Package the static output in a Docker image served by Caddy. Build with Docker Compose on the development machine and on the staging VPS from the `main` branch, and document deployment and rollback with no image registry.
-- **G6 — Quality gates:** Provide linting, formatting, type checking, unit tests, end-to-end tests, a production build, CI on GitHub, and a Makefile for the repeatable container workflow.
-- **G7 — Handoff readiness:** Document local setup, build, deployment, rollback, domain switching, and the boundary for the future quote API.
+- **G5 — Reproducible multi-container deployment:** Package the static output and the edge proxy as separate Docker images built with Docker Compose on the machine that runs the stack. Run each service in its own container on a private network, expose only Caddy, and document build, local deployment, rollback, portability, and the future backend extension point with no image registry.
+- **G6 — Quality gates:** Provide linting, formatting, type checking, unit tests, end-to-end tests, a production build, and a Makefile for the repeatable container workflow. All gates run locally; the project does not depend on hosted CI.
+- **G7 — Handoff readiness:** Document local setup, build, local deployment, rollback, domain switching, and the boundary for the future quote API.
 
 ## 3. Non-goals
 
@@ -30,9 +33,12 @@ This specification does not deliver the finished marketing site, the quote form,
 - Final homepage, service, contact, legal, or privacy copy.
 - CMS, admin dashboard, authentication, database, or external translation service.
 - Analytics, advertising pixels, cookie consent, or marketing automation.
-- Production domain, client DNS, or client email credentials.
-- Infomaniak-specific APIs, panels, or runtime services.
-- A remote Docker image registry, image transfer between machines, or locally built image artifacts on the VPS.
+- Production domain, DNS, or email credentials.
+- Provider-specific APIs, panels, or runtime services.
+- A remote Docker image registry, image transfer between machines, or checked-in image artifacts.
+- CI pipelines, GitHub workflows, or any automation that calls a hosting or Git provider.
+- A backend, API, database, queue, or any future service implementation. This phase prepares only the network and reverse-proxy extension point.
+- Publishing internal service ports to the host, or exposing any service other than the Caddy edge.
 - A Node.js application server for the public site.
 - Final logo replacement, vector logo design, or genuine project photography.
 
@@ -49,9 +55,10 @@ This specification does not deliver the finished marketing site, the quote form,
 - **US2:** As a mobile visitor, I can open the navigation, reach every page, and contact the business by phone, WhatsApp, or email.
 - **US3:** As a search engine, I can discover canonical localized pages and their language alternates.
 - **US4:** As a developer, I can install, run, test, and build the site using documented commands.
-- **US5:** As an operator, I can deploy the latest `main` to the staging VPS from source with one Make target, and roll back by rebuilding an earlier commit.
+- **US5:** As the owner, I can deploy the current revision on a local or remote Docker host with `make build && make up`, and roll back by rebuilding an earlier revision.
 - **US6:** As the business, I can review a staging site that is excluded from search indexes and contains no fabricated claims.
-- **US7:** As a developer, I can build, start, stop, inspect and clean the same container workflow locally and on the VPS with identical commands.
+- **US7:** As a developer, I can build, start, stop, inspect and clean the same container workflow on any Docker-capable host with identical commands.
+- **US8:** As a developer, I can add a future backend container to the private network and route it through Caddy without changing the public ports or exposing the backend directly.
 
 ## 6. Functional requirements
 
@@ -118,40 +125,53 @@ This specification does not deliver the finished marketing site, the quote form,
 ### 6.7 Build, container, and deployment
 
 - **R43:** Produce a static `dist/` directory from `pnpm build`.
-- **R44:** Use a multi-stage Docker build: Node.js build stage, Caddy static-serving stage. The final image must contain no Node.js runtime.
-- **R45:** Serve the site with Caddy using automatic HTTPS, compression, security headers, trailing-slash normalization, and locale-aware 404 handling.
-- **R46:** Provide `compose.yaml` for the Caddy container with restart policy, health check, log rotation, and persistent Caddy certificate volumes.
-- **R47:** Build the Docker image with Docker Compose (`docker compose build`) on the development machine and on the staging VPS. Do not use a remote image registry.
-- **R48:** Deploy on the VPS by stopping the services, removing the previous application image, fetching the latest `main` source, rebuilding the image, and starting the services again.
-- **R49:** Roll back by checking out a previous known-good commit and rebuilding it; document the exact commands.
-- **R50:** Use the temporary staging address `https://<VPS_IP>.sslip.io` only if HTTPS certificate issuance succeeds.
-- **R51:** Do not introduce Infomaniak-specific configuration. The deployment must work on any Docker-capable Linux host.
-- **R52:** Use Ubuntu Server 24.04 LTS, subject to compatibility checks. Record any fallback to 22.04 LTS.
-- **R53:** Verify before deployment: sudo access, SSH key access, OS version, resources, disk, time synchronization, firewall, and inbound ports 80/443.
-- **R54:** Harden the host with a non-root deployment user, SSH-key authentication, UFW rules for 22/80/443, unattended upgrades, and Docker log rotation. Keep additional tooling minimal.
-- **R55:** Do not store credentials in the image or repository. Protect the deployment environment file with mode 600 and keep it out of Git.
+- **R44:** Use a single multi-stage `Dockerfile` with two final targets: `web` (Astro build output served by Caddy over HTTP, with no Node.js runtime) and `edge` (Caddy reverse proxy and TLS terminator). Each target produces its own image.
+- **R45:** Run the public edge in Caddy: terminate TLS, provide automatic HTTP-to-HTTPS redirect when an HTTPS address is configured, compress responses, apply security headers, normalize trailing slashes, redirect `/` to `/es/`, emit access logs, and reverse-proxy site traffic to the internal `web` service.
+- **R46:** Run the static site in a separate `web` container that serves the build output over HTTP on the private network and returns localized 404 pages with HTTP 404.
+- **R47:** Build all images with Docker Compose (`docker compose build`) on the machine that runs the stack, normally the development machine. Do not use a remote image registry.
+- **R48:** Deploy locally by building the images from the current source and starting the services with `make build && make up`. Do not put Git commands inside the deployment path.
+- **R49:** Roll back by checking out a previous known-good revision, rebuilding it, and starting the stack again; document the exact commands.
+- **R50:** When HTTPS is required, use a domain that resolves to the host and allowed ports 80/443 so Caddy can issue a trusted certificate. Plain HTTP is acceptable for purely local verification.
+- **R51:** Do not introduce provider-specific configuration. The deployment must work on any Docker-capable Linux host.
+- **R52:** Treat the host as a generic prerequisite: Docker Engine with the Compose plugin, GNU Make, free ports 80/443 when TLS is used, and time synchronization. No provider-specific image or panel is required.
+- **R53:** Keep host preparation minimal and reversible: install Docker and the Compose plugin, clone the repository into any directory, and keep `.env` out of Git. Record any host-specific prerequisite in the README instead of automating it.
+- **R54:** Do not run privileged commands as part of the project's scripts. Any `sudo` step is performed by the owner outside the repository workflow.
+- **R55:** Do not store credentials in the image or repository. Protect the environment file with mode 600 and keep it out of Git.
 - **R56:** Configure Caddy access logging with bounded retention, or disable access logs if not needed. Do not log request bodies.
 - **R57:** Document the static-hosting handoff requirements for a future client host: rewrite/redirect rules, 404 handling, TLS, and security headers.
 
-### 6.8 Quality and CI
+### 6.8 Quality and local verification
 
 - **R58:** Add unit tests for translation-key parity, locale path helpers, and configuration parsing.
 - **R59:** Add Playwright tests for locale routes, root redirect, language switching, navigation, mobile menu, contact links, localized 404, staging `noindex`, and responsive layouts.
 - **R60:** Add an axe accessibility scan for each locale with no serious or critical violations.
-- **R61:** Add GitHub Actions CI on pull requests and pushes to `main` running install, lint, format check, type check, unit tests, build, and end-to-end tests.
+- **R61:** Provide a single local verification sequence — `pnpm validate`, `pnpm test:e2e`, `make build`, `make up`, `make smoke` — and document it. Do not add CI workflows or hosted pipelines.
 - **R62:** Keep the build reproducible with `--frozen-lockfile`.
-- **R63:** Provide a README covering setup, commands, environment variables, image build, deployment, rollback, and domain switching.
+- **R63:** Provide a README covering setup, commands, environment variables, image build, local deployment, rollback, portability, and domain switching.
 
 ### 6.9 Git and documentation
 
-- **R64:** Work on feature branches and target `main` through a pull request with manual review. The VPS deploys only from `main`.
+- **R64:** The owner manages Git history: they add, commit, push, and deploy. Agents may create feature branches (`feat/NNN-name`) and must not commit, push, rebase, or reset unless explicitly asked. No pull-request gate or hosted review is required.
 - **R65:** Do not commit generated output, dependencies, secrets, or environment files.
 - **R66:** Update `MEMORY.md` with the resulting project state and any new pitfalls after implementation.
-- **R67:** Provide a `Makefile` with `build`, `up`, `down`, `restart`, `logs`, `status`, `deploy` and `clean` targets.
-- **R68:** The `deploy` target is VPS-only and runs, in order: stop services, remove the previous application image, fetch `main`, rebuild, start services.
-- **R69:** Preserve the `caddy_data` and `caddy_config` volumes across `down`, `deploy` and `clean`. Never document `docker compose down -v`.
-- **R70:** Do not transfer images between machines. Every environment builds from source with the same Compose file and Make targets.
-- **R71:** Treat the VPS as a staging and demonstration environment: downtime and loss of application data are acceptable. Persistent Caddy volumes are still preserved.
+- **R67:** Provide a `Makefile` with `build`, `up`, `down`, `restart`, `logs`, `status`, `smoke` and `clean` targets.
+- **R68:** The Makefile must not run Git commands and must not select a revision; deployment operates on the working tree the owner has checked out.
+- **R69:** Preserve the `caddy_data` and `caddy_config` volumes across `down` and `clean`. Never document `docker compose down -v`.
+- **R70:** Do not transfer images between machines. Every host builds from source with the same Compose file and Make targets.
+- **R71:** Treat every deployment target outside the owner's machine as a demonstration environment unless separately specified: downtime and loss of application data are acceptable. Persistent Caddy volumes are still preserved.
+
+### 6.10 Multi-container topology and extension points
+
+- **R72:** Define separate Compose services for the public entry point (`edge`) and the static site (`web`). Each service runs in its own container and communicates over a user-defined Docker bridge network by service DNS name.
+- **R73:** Publish host ports only on the edge service: TCP 80, TCP 443, and optionally UDP 443. The web service must declare `expose` only, never `ports`; no other service may publish a host port.
+- **R74:** Route public traffic through the edge to `web:8080`. Reserve and document a path prefix (default `/api/*`) for future backend traffic so a backend can be added without changing public ports, hostnames, or the private network.
+- **R75:** Do not implement the backend, API, database, or any future service in `001`. Prepare only the network, reverse-proxy extension point, image and target naming, health-check pattern, and documentation.
+- **R76:** Give both services health checks. Start the edge only after the web service is healthy using `depends_on` with `condition: service_healthy`, and use `restart: unless-stopped` for both.
+- **R77:** Attach the `caddy_data` and `caddy_config` volumes only to the edge service. Future services use their own named volumes; no Make target removes all volumes.
+- **R78:** Ensure neither image contains Node.js, source code, build tooling, secrets, or environment files. The web image contains only the static output and its internal server configuration; the edge image contains only the proxy configuration.
+- **R79:** Route future same-origin services through the edge under the reserved path prefix so the CSP `connect-src 'self'` and canonical URLs remain valid. Do not introduce CORS or an additional public hostname for the backend.
+- **R80:** Document the topology, network name, service DNS names, health dependencies, and the step-by-step procedure for adding a future backend container without publishing ports.
+- **R81:** Keep the Compose project name and service names deterministic so the network and containers are predictable in `make status`, `make logs`, and `docker compose exec`.
 
 ## 7. Acceptance criteria
 
@@ -163,51 +183,64 @@ This specification does not deliver the finished marketing site, the quote form,
 6. Staging builds emit `noindex` metadata and a disallow-all `robots.txt`.
 7. No user-facing string is hardcoded in a component; translation parity tests pass.
 8. Keyboard navigation, skip link, focus visibility, mobile navigation, and contact links work. Axe reports no serious or critical issues.
-9. The Docker image builds with Docker Compose, serves the site through Caddy, includes no Node.js runtime, and passes a local smoke test.
-10. The VPS builds the image from the latest `main` source and serves it over HTTPS at the staging address. No image registry or image transfer is involved.
-11. The VPS exposes only the required ports, uses SSH keys, and has bounded Docker logs.
-12. A previous known-good commit can be rebuilt and redeployed successfully as a rollback.
-13. CI passes on the feature branch and on the pull request into `main`.
-14. `README.md` documents setup, deployment, rollback, environment values, the Make targets, and the domain-switch rebuild.
-15. No database, CMS, analytics, quote form, email integration, upload capability, or production secret is introduced.
-16. The `Makefile` exposes `build`, `up`, `down`, `restart`, `logs`, `status`, `deploy` and `clean`, and the same targets work locally and on the VPS.
-17. `down`, `deploy` and `clean` preserve the `caddy_data` and `caddy_config` volumes and the Caddy configuration.
+9. `docker compose build` produces separate `edge` and `web` images from the multi-stage `Dockerfile`, and no image contains a Node.js runtime.
+10. The edge and web services run in separate containers on the same user-defined Docker network and communicate by service DNS name.
+11. Only the edge service publishes host ports. The web service has no published host port and is not reachable directly from the host.
+12. The edge reverse proxy serves the site correctly: root redirect, trailing-slash normalization, all locales, localized 404 status and content, security headers, compression, and access logs.
+13. `make build` produces both images on the host that runs the stack, with no registry and no image transfer, and `make up && make smoke` passes from a clean checkout plus `.env`.
+14. The stack publishes only the edge ports; the web container remains unreachable from the host, and both services report healthy.
+15. A previous known-good revision can be rebuilt and started successfully as a rollback.
+16. The same `compose.yaml`, `Dockerfile`, and Make targets work unchanged on another Docker-capable host, with only `.env` values differing.
+17. `README.md` documents setup, local deployment, rollback, portability, environment values, the Make targets, the multi-container topology, the network and service names, and the procedure for adding a future backend container.
+18. The `Makefile` exposes `build`, `up`, `down`, `restart`, `logs`, `status`, `smoke` and `clean`, and contains no Git commands.
+19. `down` and `clean` preserve the `caddy_data` and `caddy_config` volumes and the Caddy configuration.
+20. No backend, database, CMS, analytics, quote form, email integration, upload capability, or production secret is introduced; only the network and reverse-proxy extension point are documented.
 
 ## 8. Edge cases and failure handling
 
-- **HTTPS unavailable:** If `sslip.io` does not resolve or Caddy cannot obtain a certificate because ports 80/443 are blocked, stop and report. Do not present an HTTP-only staging site as complete without explicit approval.
-- **VPS mismatch:** If Ubuntu 24.04 cannot run the required Docker packages or conflicts with the provider image, document the issue and request approval before falling back to 22.04 LTS.
-- **Resource limits:** The VPS has 1 vCPU, 2 GB RAM, and 20 GB storage. Building there is expected but slow; `deploy` stops the service first to free memory, and old images and build cache are pruned when disk pressure appears.
-- **VPS build fails:** The running site stays down or on the previous container state; fix the commit on `main` and redeploy. Never copy a local image to the VPS.
-- **Branch drift:** The VPS deploy hard-resets its working copy to `origin/main` and discards local tracked changes. Uncommitted VPS edits are not a deployment mechanism.
+- **HTTPS unavailable:** If a domain does not resolve to the host or Caddy cannot obtain a certificate because ports 80/443 are blocked, keep plain HTTP for local verification and do not present a public deployment as complete without explicit approval.
+- **Host mismatch:** If the chosen host cannot run the required Docker packages, document the issue and request approval before changing the target.
+- **Resource limits:** Some hosts build slowly with limited CPU, RAM, or disk. Run `make build` before `make up` to reduce peak container pressure, and prune old images or build cache when disk pressure appears.
+- **Build fails:** The previously built images may still be present. `make up` must not serve a stale site silently; check `make status`, fix the source, and rebuild. Never copy a local image to another host.
+- **Working tree drift:** Deployment builds whatever the owner has checked out. There is no automatic fetch or reset; the owner controls the revision.
+- **Web unavailable:** If the web container is down or unhealthy, the edge returns `502`/`504` with security headers. `make status` shows the unhealthy service; fix it before presenting the site. The edge must not serve stale content.
+- **Startup ordering:** The edge waits for a healthy web service through `depends_on`; a manual `docker compose up` must not race the proxy.
+- **Accidental exposure:** If the web service publishes a host port, the topology is wrong. Review and the smoke checks must fail, and the port must be removed rather than firewalled.
+- **Network or DNS mismatch:** If the edge cannot resolve `web` by service name, verify both services are on the same user-defined network and that the service name in the Caddy upstream matches Compose.
+- **Future backend added:** A backend must join the same private network, publish no host port, expose a health check, and be routed through a dedicated path prefix on the edge. If it runs in a separate Compose project, it must attach to an explicitly shared external network; document that choice.
+- **Future backend down:** The edge returns an error for the backend prefix without affecting static pages. Static routes must continue to work.
 - **Missing translation:** A missing key, empty string, or extra key must fail the unit test and the build.
 - **Invalid locale:** Unknown locales and unprefixed non-root paths return 404; they do not redirect to a guessed language.
 - **Trailing slash:** Canonical links always include a trailing slash. Requests without it are redirected consistently.
 - **JavaScript disabled:** Navigation, language switching, and contact methods remain usable.
 - **Font failure:** The fallback stack must preserve layout and readability.
 - **Staging indexed:** Automated tests must fail if staging output lacks `noindex`.
-- **Domain change:** Switching to the client domain requires updated `SITE_URL`/`SITE_ADDRESS`, a new image build, redeployment, and certificate issuance.
+- **Domain change:** Switching to a real domain requires updated `SITE_URL`/`SITE_ADDRESS`, a new `web` image build, a restart, and certificate issuance.
 - **Client static host:** Static files remain portable, but redirects, 404 handling, and headers require equivalent host configuration. Document the gap.
-- **Future quote API:** `004` may add a separate API service or serverless endpoint. This specification must not couple the static site to a specific API host.
+- **Future quote API:** `004` will add the quote API as an internal container on the private network, or, if explicitly approved, as an external endpoint. This specification must not couple the static site to a specific API host.
 
 ## 9. Assumptions
 
-- The GitHub repository integrates through `main`, and the default branch is renamed from `master` to `main`.
-- The Infomaniak VPS can run Docker, can build the Astro image within its 1 vCPU / 2 GB / 20 GB budget, and receives inbound traffic on ports 80 and 443.
-- The `sslip.io` hostname resolves to the VPS IPv4 address and permits trusted certificate issuance.
-- The client’s eventual hosting can serve static files; if it cannot, the site remains deployable on the VPS.
+- The owner controls Git history, branch selection, and deployment; no hosted CI, review gate, or deployment automation is assumed.
+- The machine that runs the stack has Docker Engine with Compose v2 supporting `depends_on` with `condition: service_healthy`, plus GNU Make.
+- A Linux host with Docker can build the Astro and edge images from source with the pinned Node.js version inside the build stage; no Node.js is installed on the host.
+- Caddy is reused as both the internal static server and the public edge proxy, so only one web-server technology is introduced.
+- Traffic between the edge and internal services is plain HTTP on the private Docker network; TLS terminates at the edge.
+- The future backend (`004`) will run as another container in the same Compose project on the `app` network by default. A separate Compose project would require an explicitly shared external network.
+- `/api/*` is the reserved path prefix for the future backend.
+- When a public HTTPS deployment is needed, the owner provides a domain that resolves to the host and free ports 80/443.
+- The client’s eventual hosting can serve static files; if it cannot, the same containers remain deployable on any Docker-capable host.
 - The existing `public/logo.jpg` (968×968, no transparency) is acceptable for the light staging header.
 - Astro, Tailwind, and the selected Node.js LTS versions are compatible at implementation time.
 
 ## 10. PENDING decisions and inputs
 
-- Rename the GitHub default branch from `master` to `main` and enable the pull-request review required by this workflow.
-- VPS access details: IP address, SSH user, key, sudo policy, OS image, firewall state.
-- Confirmation that ports 80 and 443 are reachable from the public internet.
-- Final production domain and DNS access, needed only after approval of the staging site.
+- Final production domain and DNS access, needed only when a public deployment is approved.
+- Confirmation from the owner that the host allows inbound TCP 80/443 (and UDP 443) before any public HTTPS deployment.
 - Email credentials or transactional provider for `004`, not needed for this specification.
 - Transparent or vector logo, needed before dark backgrounds or final brand polish.
+- Retention and deletion rules for future quote submissions and uploads, to be defined in `004`.
 
 ## 11. Definition of done
 
-The foundation is complete when all acceptance criteria are satisfied, CI is green on `main`, the staging site is reachable over HTTPS and excluded from indexing, the VPS builds and deploys from `main`, rollback is documented and demonstrated, and `MEMORY.md` reflects the new project state.
+The foundation is complete when all acceptance criteria are satisfied, `pnpm validate` and `pnpm test:e2e` pass, `make build && make up` starts a healthy stack on the owner's machine, `make smoke` passes locally, only the Caddy edge is publicly exposed, the edge and web services communicate over the private network, rollback is documented, and `MEMORY.md` reflects the new project state.

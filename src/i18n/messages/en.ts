@@ -54,11 +54,52 @@ export const en = {
       authorization: 'Low-voltage installer (IBTB basic)',
       insurance: 'Civil liability insurance',
     },
-    servicesHeading: 'Services',
-    servicesLead: 'Five areas of work for homes, commercial premises and small installations.',
     contactHeading: 'Tell us what you need',
     contactLead: 'Call us, message us on WhatsApp or send an email. We reply during opening hours.',
-    placeholderNote: 'Real photographs of completed work will be shown here once available.',
+    heroImageAlt: 'View of the Peñón de Calpe and the coast.',
+    work: {
+      categories: {
+        ilumination: {
+          title: 'Lighting',
+          lead: 'Interior and exterior lighting, light points and power outlets.',
+          bullets: [
+            'Light points, sockets and switches',
+            'Interior and exterior lighting',
+            'Replacing light fittings and switches',
+            'LED strip installation',
+          ],
+          imageAlt:
+            'Lighting work carried out by EA electricidad y multiservicios, photo {current} of {total}.',
+        },
+        electricity: {
+          title: 'Electrical',
+          lead: 'Installations, consumer units, faults and inspections.',
+          bullets: [
+            'New installations and renovations',
+            'Consumer units and protective devices',
+            'Fault finding and repairs',
+            'Inspections and certificates',
+          ],
+          imageAlt:
+            'Electrical work carried out by EA electricidad y multiservicios, photo {current} of {total}.',
+        },
+        climatization: {
+          title: 'Climate control',
+          lead: 'Air conditioning, maintenance and basic plumbing.',
+          bullets: [
+            'Air conditioning installation',
+            'Equipment maintenance and cleaning',
+            'Basic plumbing',
+            'Water heaters and small water works',
+          ],
+          imageAlt:
+            'Climate control work carried out by EA electricidad y multiservicios, photo {current} of {total}.',
+        },
+      },
+      slideshow: {
+        stageLabel: '{category} gallery. Click or press Space to pause or resume.',
+      },
+    },
   },
   services: {
     eyebrow: 'Services',
@@ -128,7 +169,6 @@ export const en = {
     lead: 'The page you are looking for does not exist or has changed address.',
   },
   footer: {
-    tagline: 'Electrical installations and multi-service work in Calpe.',
     contactHeading: 'Contact',
     hoursHeading: 'Hours',
     areaHeading: 'Service area',

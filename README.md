@@ -4,7 +4,9 @@ Static, multilingual website for **EA electricidad y multiservicios**, an indepe
 low-voltage electrical installer based in Calpe, Alicante.
 
 The site is built with Astro, exported as static HTML/CSS/JS, and served in production by
-Caddy inside a Docker container. The public site does **not** require Node.js at runtime.
+two Docker containers: a public Caddy **edge** proxy and an internal Caddy **web** server on
+a private network. Only the edge publishes ports. The public site does **not** require
+Node.js at runtime.
 
 - Spanish (`es`) is the default locale.
 - English (`en`) and French (`fr`) are also available.
@@ -16,27 +18,27 @@ database, analytics, cookies, or CMS. The quote form is planned for a later phas
 
 ## Stack
 
-| Concern         | Choice                                           |
-| --------------- | ------------------------------------------------ |
-| Framework       | Astro (static output)                            |
-| Language        | TypeScript (strict)                              |
-| Styling         | Tailwind CSS v4 with CSS theme tokens            |
-| Translations    | Typed TypeScript dictionaries (`es`, `en`, `fr`) |
-| Unit tests      | Vitest                                           |
-| Browser tests   | Playwright + `@axe-core/playwright`              |
-| Lint / format   | ESLint + Prettier                                |
-| Package manager | pnpm, with committed `pnpm-lock.yaml`            |
-| Build runtime   | Node.js 24 LTS                                   |
-| Production      | Caddy serving static files from a Docker image   |
-| Image builds    | Docker Compose, locally and on the VPS           |
-| CI              | GitHub Actions                                   |
+| Concern         | Choice                                             |
+| --------------- | -------------------------------------------------- |
+| Framework       | Astro (static output)                              |
+| Language        | TypeScript (strict)                                |
+| Styling         | Tailwind CSS v4 with CSS theme tokens              |
+| Translations    | Typed TypeScript dictionaries (`es`, `en`, `fr`)   |
+| Unit tests      | Vitest                                             |
+| Browser tests   | Playwright + `@axe-core/playwright`                |
+| Lint / format   | ESLint + Prettier                                  |
+| Package manager | pnpm, with committed `pnpm-lock.yaml`              |
+| Build runtime   | Node.js 24 LTS                                     |
+| Production      | Caddy edge proxy + internal Caddy static container |
+| Image builds    | Docker Compose, on the host that runs the stack    |
+| CI              | None — checks run locally before deploying         |
 
 ## Prerequisites
 
 - Node.js 24 LTS (see `.nvmrc`)
 - pnpm 12.16.1 (pinned in `package.json` via `packageManager`)
 - Docker Engine with the Compose plugin, for the container workflow
-- GNU Make, for the `build`/`up`/`deploy` targets
+- GNU Make, for the `build`/`up` targets
 
 With `nvm`:
 
@@ -58,12 +60,12 @@ The dev server listens on `http://localhost:4321`. The root path redirects to `/
 
 ### Environment variables
 
-| Variable       | Scope         | Description                                                       |
-| -------------- | ------------- | ----------------------------------------------------------------- |
-| `SITE_URL`     | Build time    | Absolute site URL used for canonical links, hreflang and sitemap. |
-| `SITE_ENV`     | Build time    | `staging` (default) or `production`. Controls `noindex`/robots.   |
-| `SITE_ADDRESS` | Caddy runtime | Host and TLS address, e.g. `https://<VPS_IP>.sslip.io`.           |
-| `BASE_URL`     | Smoke script  | Target URL for `scripts/smoke.sh`.                                |
+| Variable       | Scope         | Description                                                                 |
+| -------------- | ------------- | --------------------------------------------------------------------------- |
+| `SITE_URL`     | Build time    | Absolute site URL used for canonical links, hreflang and sitemap.           |
+| `SITE_ENV`     | Build time    | `staging` (default) or `production`. Controls `noindex`/robots.             |
+| `SITE_ADDRESS` | Caddy runtime | Host and TLS address used by the edge, e.g. `:80` or `https://example.com`. |
+| `BASE_URL`     | Smoke script  | Target URL for `scripts/smoke.sh`.                                          |
 
 Notes:
 
@@ -72,9 +74,9 @@ Notes:
 - `SITE_ENV` defaults to `staging`; production must be set explicitly to avoid accidental
   indexing.
 - `SITE_URL` and `SITE_ENV` are baked into the build. Changing the domain or indexing mode
-  requires a new image build, which `make deploy` performs on the VPS.
-- `.env.example` ships local defaults (`http://localhost`, `SITE_ADDRESS=:80`) with the
-  staging values commented out. Never commit a real `.env`.
+  requires a new image build (`make build`) before `make up`.
+- `.env.example` ships local defaults (`http://localhost`, `SITE_ADDRESS=:80`) with a
+  generic production-style example commented out. Never commit a real `.env`.
 
 ## Commands
 
@@ -94,7 +96,7 @@ Notes:
 ### Production build
 
 ```bash
-SITE_URL=https://203.0.113.10.sslip.io SITE_ENV=staging pnpm build
+SITE_URL=https://example.com SITE_ENV=production pnpm build
 pnpm preview
 ```
 
@@ -115,168 +117,199 @@ responsive overflow, axe accessibility checks, and no-JavaScript behavior.
 
 ## Docker and Compose
 
-The site is packaged as a multi-stage image:
+The stack has two services built from one multi-stage `Dockerfile`:
 
-1. Node.js 24 + pnpm build the static output with `SITE_URL`/`SITE_ENV` build arguments.
-2. Caddy serves `/srv` from the runtime image.
+1. A Node.js 24 + pnpm build stage produces `dist/` with `SITE_URL`/`SITE_ENV` build
+   arguments.
+2. The `web` target copies the static output and `Caddyfile.web` into a Caddy image,
+   listens on `:8080`, and serves the site with localized 404 pages.
+3. The `edge` target copies `Caddyfile` into a Caddy image and handles TLS, redirects,
+   security headers, compression, logs, and reverse proxying to `web:8080`.
 
-The final image contains no Node.js, package manager, source code, tests, or environment
-files. There is no image registry: the same `compose.yaml` and `Dockerfile` build the image
-locally and on the VPS.
+Both final stages strip the `cap_net_bind_service` file capability that the official Caddy
+image sets on its binary. When the capability bounding set is empty (`cap_drop: ALL`), Linux
+fails `execve` with `operation not permitted`, so the container never starts; neither service
+needs the file capability, because the edge receives `NET_BIND_SERVICE` from Compose and the
+web server listens on 8080.
 
-`compose.yaml` runs a single `web` service (tagged `ea-electricidad:local`) with:
+Neither final image contains Node.js, package manager, source code, tests, or environment
+files. There is no image registry: every host builds both images from source with the same
+`compose.yaml` and `Dockerfile`.
 
-- ports 80 and 443 (TCP) plus 443/UDP for HTTP/3
-- persistent `caddy_data` and `caddy_config` volumes
-- a health check against the internal `/healthz` endpoint
-- bounded JSON logs
-- `no-new-privileges` and only `NET_BIND_SERVICE`
+```text
+Internet
+  │  TCP 80/443 + UDP 443
+  ▼
+edge · Caddy · only published ports
+  ├─ TLS, compression, security headers
+  ├─ / → /es/, trailing-slash redirects
+  ├─ /healthz
+  └─ reverse_proxy → web:8080
+       │ private app network
+       ▼
+web · Caddy · expose 8080 only, no host port
+  ├─ static dist/
+  └─ localized 404 pages with HTTP 404
+```
+
+`compose.yaml` fixes the Compose project name `ea-electricidad`, so container and network
+names are predictable. Both services join the private bridge network `app` and resolve each
+other by service name.
+
+`edge` (image `ea-electricidad-edge:local`):
+
+- publishes TCP 80, TCP 443 and UDP 443 for HTTP/3
+- waits for a healthy `web` through `depends_on: condition: service_healthy`
+- mounts the persistent `caddy_data` and `caddy_config` volumes
+- health check on the internal `:8081/healthz` listener
+- bounded JSON logs, `no-new-privileges`, only `NET_BIND_SERVICE`
+
+`web` (image `ea-electricidad-web:local`):
+
+- declares `expose: ['8080']` and never `ports`
+- health check on `:8080/healthz`
+- bounded JSON logs, `no-new-privileges`, all capabilities dropped
 
 ### Make targets
 
-`make help` lists them. The same targets work on the development machine and the VPS.
+`make help` lists them. They run on the machine that hosts the stack; nothing is specific to
+a particular provider or server.
 
-| Target         | Action                                                             |
-| -------------- | ------------------------------------------------------------------ |
-| `make build`   | Build the image from the current source.                           |
-| `make up`      | Start the service and wait for health.                             |
-| `make down`    | Stop and remove containers; volumes are preserved.                 |
-| `make restart` | Restart containers without rebuilding.                             |
-| `make logs`    | Follow the last 200 log lines.                                     |
-| `make status`  | Show container state and health.                                   |
-| `make smoke`   | Run the smoke test; `BASE_URL=...` targets a remote host.          |
-| `make deploy`  | VPS only: stop, remove the old image, sync `main`, rebuild, start. |
-| `make clean`   | Remove containers and application images; volumes are preserved.   |
+| Target         | Action                                                           |
+| -------------- | ---------------------------------------------------------------- |
+| `make build`   | Build both service images from the current source.               |
+| `make up`      | Start the stack and wait for health.                             |
+| `make down`    | Stop and remove containers; volumes are preserved.               |
+| `make restart` | Restart containers without rebuilding.                           |
+| `make logs`    | Follow the last 200 log lines from every service.                |
+| `make status`  | Show container state and health for every service.               |
+| `make smoke`   | Run the smoke test; `BASE_URL=...` targets a remote host.        |
+| `make clean`   | Remove containers and application images; volumes are preserved. |
 
 No target uses `docker compose down -v`. `caddy_data` and `caddy_config` hold the
-certificates and must survive `down`, `deploy`, and `clean`.
+certificates and must survive `down` and `clean`.
 
-### Local run
+### Quick start
 
 ```bash
 cp .env.example .env
 make build
 make up
-make status
+make status           # edge healthy, web healthy
 make smoke            # http://127.0.0.1
 ```
 
-Locally `.env` sets `SITE_ADDRESS=:80`, so the site is served over plain HTTP on port 80.
+Locally `.env` sets `SITE_ADDRESS=:80`, so the edge serves plain HTTP on port 80. The web
+container is reachable only on the private `app` network; it has no host port.
 
 ### Smoke test
 
 ```bash
 make smoke                              # running local stack
-make smoke BASE_URL=https://<VPS_IP>.sslip.io
+make smoke BASE_URL=https://example.com # any reachable host
 ```
 
-The script starts a temporary container when `BASE_URL` is unset and checks health, locales,
-redirects, localized 404 status/content, security headers (including on error pages),
-compressed responses, static assets, and the absence of Node.js in the runtime image. With
-`BASE_URL` set it tests that environment directly.
+Against a local `BASE_URL` the script also verifies the Docker topology: both services are
+running and healthy, only the edge publishes ports, the edge reaches `web:8080` by service
+DNS, and neither image contains Node.js. For a remote `BASE_URL` it runs only the HTTP
+assertions: health, locales, redirects, localized 404 status/content, security headers
+(including on error pages), immutable asset caching, and compressed responses.
 
-## CI
+### Adding a future backend
 
-`.github/workflows/ci.yml` runs on pull requests and pushes to `main`:
+The reserved path prefix is `/api/*`. A future backend such as the quote API in `004` must
+stay on the private network and must not publish a host port:
 
-1. Frozen install.
-2. Lint and format check.
-3. Astro/TypeScript check.
-4. Unit tests.
-5. Build with staging configuration.
-6. Playwright end-to-end tests.
-7. `docker compose build` and container smoke test, the same build path used locally and on
-   the VPS.
+1. Add a `backend` service to `compose.yaml` on the same `app` network, with `expose` only,
+   a health check, bounded logs, and no `ports`.
+2. Add a health dependency if the public site needs the backend at startup.
+3. In `Caddyfile`, in the `edge` site block, replace the single proxy with ordered handlers:
 
-Deployment is intentionally manual. CI does not deploy to the VPS.
+   ```caddyfile
+   handle /api/* {
+       reverse_proxy backend:3000
+   }
+   handle {
+       reverse_proxy web:8080
+   }
+   ```
+
+4. Rebuild and restart with `make build && make up`.
+5. Extend `scripts/smoke.sh` with assertions for the new prefix.
+
+Because the backend stays behind the edge, `connect-src 'self'` remains valid, no CORS is
+needed, and no additional public hostname or port is introduced. If a future service must
+live in a separate Compose project, attach it to an explicitly shared external network and
+document that choice.
+
+## Local checks
+
+There is no CI pipeline. Run the checks locally before the owner commits or deploys:
+
+```bash
+pnpm validate      # lint, format check, Astro/TypeScript check, unit tests, build
+pnpm test:e2e      # build + Playwright browser tests
+make build         # both container images
+make up            # start the stack and wait for health
+make smoke         # HTTP + Docker topology assertions
+```
+
+`pnpm validate` covers the static site; the `make` steps cover the container path. The smoke
+test fails fast if the topology drifts (an extra published port, an unhealthy service, or
+Node.js leaking into an image).
 
 ## Git workflow
 
-1. Branch from `main` (for example `feat/002-homepage`).
-2. Open a pull request into `main` and wait for review plus green CI.
-3. Merge into `main`; only `main` is deployable.
-
-The VPS tracks `main` exclusively. Local branches and pull-request heads are never deployed.
+- The owner owns Git: they branch, add, commit, push, and deploy.
+- Agents may create a feature branch (`feat/NNN-name`) when starting a feature, but never
+  commit, push, rebase, or reset unless explicitly asked.
+- There is no pull-request gate, no CI, and no GitHub automation. Nothing in the repository
+  contacts GitHub, and no branch-protection or release tooling is required.
 
 ## Deployment
 
-The target is the existing Infomaniak VPS (1 vCPU, 2 GB RAM, 20 GB, Ubuntu 24.04 LTS,
-subject to compatibility). It is a staging/demonstration host: downtime and loss of
-application data are acceptable, but Caddy certificates are preserved. The VPS builds the
-image from source; no image is transferred.
+Deployment is local-first: the stack is built and started on whatever machine runs it, using
+the quick start above. There is no registry and no remote build: the host compiles both
+images from source. Downtime between a rebuild and a healthy start is expected, but the
+Caddy volumes are preserved.
 
-### Preflight
+### Using another host
 
-Before deploying, confirm:
+The stack is provider-neutral. Any host with Docker Engine and the Compose plugin works:
 
-- OS version, CPU, RAM, disk and time synchronization.
-- SSH key access and the sudo policy.
-- Inbound TCP 22, 80 and 443 (and UDP 443 for HTTP/3).
-- `<VPS_IP>.sslip.io` resolves to the VPS.
-- Ports 80/443 are free.
-- A trusted certificate can be issued. If not, stop and report.
+1. Clone the repository and check out the revision to run.
+2. Create `.env` from `.env.example` and set `SITE_URL`, `SITE_ENV`, and `SITE_ADDRESS` for
+   that host; `chmod 600 .env`.
+3. Make sure inbound TCP 80 and 443 (and UDP 443 for HTTP/3) reach the edge and that ports
+   80/443 are free.
+4. Run `make build && make up`, then `make smoke` locally on that host.
+5. From another machine, verify with `make smoke BASE_URL=https://<host>`.
 
-### Host setup
-
-1. Create a non-root `deploy` user with SSH key access and Docker permissions.
-2. Disable password SSH and direct root login once the deploy user is verified.
-3. Allow 22, 80 and 443 in UFW; deny other inbound traffic.
-4. Enable unattended upgrades and Docker log rotation.
-5. Install Docker Engine, the Compose plugin, and `git`.
-6. Clone the repository into `/opt/ea-electricidad/` and check out `main`.
-7. Create `.env` from `.env.example` with the staging values and `chmod 600 .env`.
-
-Do not install Node.js or pnpm on the host. The build runs inside the Docker build stage.
-
-### Deploy
-
-On the VPS, in `/opt/ea-electricidad/`:
-
-```bash
-make deploy
-```
-
-`make deploy` runs, in order:
-
-1. `docker compose down` to free memory for the build.
-2. `docker image rm ea-electricidad:local` so a failed build cannot keep serving the old
-   image.
-3. `git fetch origin main` and hard-reset the working copy to `origin/main`. Tracked local
-   edits are discarded; ignored files such as `.env` are kept.
-4. `docker compose build` from the new source.
-5. `docker compose up -d --wait` and `docker compose ps`.
-
-Then verify:
-
-```bash
-make status
-make smoke BASE_URL=https://<VPS_IP>.sslip.io
-```
-
-Expect downtime between the stop and the successful start.
+Do not install Node.js or pnpm on the host; the build runs inside the Docker build stage.
+Never publish the `web` port or route traffic around the edge.
 
 ### Rollback
 
-There is no registry, so rollback rebuilds an earlier commit:
+Without a registry, roll back by rebuilding the last known-good revision:
 
 ```bash
-git fetch origin
-git checkout <known-good-commit>
+git checkout <known-good-revision>
 make build
 make up
-make smoke BASE_URL=https://<VPS_IP>.sslip.io
+make status
+make smoke
 ```
 
-Return to `main` when ready; the next `make deploy` resets the working copy automatically.
+Return to the current branch when ready and rebuild.
 
 ### Domain switch
 
-1. Point the client domain's `A`/`AAAA` records at the VPS.
+1. Point the domain's `A`/`AAAA` records at the host.
 2. Set `SITE_URL` and `SITE_ADDRESS` to the production domain.
 3. Set `SITE_ENV=production`.
-4. Run `make deploy` to rebuild from `main` with the new build arguments.
+4. Run `make build && make up` so the new build arguments are baked in.
 5. Verify HTTPS, canonical URLs, sitemap, and crawlability.
-6. Retire the staging hostname.
+6. Retire the staging hostname if there is one.
 
 ## Static host handoff
 
@@ -287,14 +320,13 @@ If the client moves to another static host, mirror the Caddy behavior:
 - Unknown `/es/*`, `/en/*`, `/fr/*` → the matching localized 404 page with HTTP `404`.
 - Other unknown paths → Spanish 404 page with HTTP `404`.
 - Serve static assets from `/_astro/` with long-lived immutable caching.
-- Apply the security headers from the `Caddyfile`, including on error responses.
+- Apply the security headers from the edge `Caddyfile`, including on error responses.
 - Keep language alternates, canonical URLs, and the generated sitemap intact.
 
 ## Project structure
 
 ```text
 .
-├── .github/workflows/ci.yml
 ├── public/logo.jpg
 ├── scripts/smoke.sh
 ├── specs/001-project-foundation/
@@ -309,9 +341,10 @@ If the client moves to another static host, mirror the Caddy behavior:
 │   └── styles/global.css
 ├── tests/{unit,e2e}/
 ├── astro.config.mjs
-├── Caddyfile
-├── compose.yaml
-├── Dockerfile
+├── Caddyfile                      # public edge: TLS, headers, redirects, proxy
+├── Caddyfile.web                  # internal static server and localized 404
+├── compose.yaml                   # edge + web on the private app network
+├── Dockerfile                     # build stage plus web and edge targets
 ├── Makefile
 ├── package.json
 └── pnpm-lock.yaml
@@ -319,15 +352,19 @@ If the client moves to another static host, mirror the Caddy behavior:
 
 ## Status and limitations
 
-- The site foundation, translations, pages, tests, container files, Makefile, and CI
-  workflow are in place.
-- CI builds through Docker Compose and runs the container smoke test; the image has not yet
-  been built or deployed on a machine with Docker access.
-- VPS preflight, staging TLS, `make deploy`, rollback, and the production domain are still
-  pending.
-- The GitHub default branch is still `master`; the workflow assumes it is renamed to `main`.
+- The site foundation, translations, pages, tests, container files, and Makefile are in
+  place.
+- The runtime is a multi-container Compose stack: a public `edge` and an internal `web` on
+  the private `app` network. Only the edge publishes ports.
+- The images have not yet been built or deployed on the owner's machine because the agent
+  has no Docker socket access; `make build`, `make up`, and the stack smoke test are still
+  unverified end to end. The `web` container is currently restarting in a loop and needs
+  diagnosis from its logs.
+- Deployment is local and owner-managed: no CI, no registry, no remote deploy target. The
+  revision to run is chosen and deployed by the owner.
 - The quote form, email delivery, uploads, privacy policy, and legal content belong to later
-  phases.
+  phases. The `/api/*` prefix and the `app` network are reserved for the future backend but
+  no backend is implemented.
 - `public/logo.jpg` is the current brand asset. A vector/transparent version and genuine
   project photography are still pending.
 - Legal and privacy pages are placeholders and are marked `noindex`.
