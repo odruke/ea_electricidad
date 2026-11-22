@@ -34,7 +34,7 @@ function readState(root: HTMLElement): SlideshowState | null {
     return null;
   }
 
-  const interval = Number(root.dataset.interval ?? 8000);
+  const interval = Number(root.dataset.interval ?? 5000);
 
   return {
     root,
@@ -45,7 +45,7 @@ function readState(root: HTMLElement): SlideshowState | null {
     hovered: false,
     inView: false,
     reducedMotion: reducedMotionQuery.matches,
-    interval: Number.isFinite(interval) && interval > 1000 ? interval : 8000,
+    interval: Number.isFinite(interval) && interval > 1000 ? interval : 5000,
     timer: null,
     transitionTimer: null,
     transitioning: false,
@@ -355,6 +355,14 @@ function initSlideshow(root: HTMLElement): void {
     }
   });
 
+  root.querySelector<HTMLButtonElement>('[data-slideshow-prev]')?.addEventListener('click', () => {
+    goTo(getPreviousPageStart(slideshow.index));
+  });
+
+  root.querySelector<HTMLButtonElement>('[data-slideshow-next]')?.addEventListener('click', () => {
+    goTo(getNextPageStart(slideshow.index));
+  });
+
   track.addEventListener('keydown', (event) => {
     if (event.key === 'ArrowLeft') {
       event.preventDefault();
@@ -419,9 +427,20 @@ function initSlideshow(root: HTMLElement): void {
   });
 
   if ('IntersectionObserver' in window) {
+    let hinted = false;
     const observer = new IntersectionObserver(
       (entries) => {
         slideshow.inView = entries.some((entry) => entry.isIntersecting);
+
+        // Nudge the next arrow once, the first time the stage is seen.
+        if (slideshow.inView && !hinted && !slideshow.reducedMotion) {
+          hinted = true;
+          root.classList.add('is-hinting');
+          root.addEventListener('animationend', () => root.classList.remove('is-hinting'), {
+            once: true,
+          });
+        }
+
         schedule();
       },
       { threshold: 0.25 },

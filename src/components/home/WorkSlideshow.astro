@@ -28,7 +28,7 @@ function imageAlt(index: number): string {
 <div
   class="work-slideshow"
   data-slideshow
-  data-interval="8000"
+  data-interval="5000"
   data-odd={hasOddSlideCount ? 'true' : undefined}
   data-testid={`slideshow-${categoryKey}`}
 >
@@ -53,4 +53,30 @@ function imageAlt(index: number): string {
       </figure>
     ))}
   </div>
+
+  <!--
+    Arrow navigation (owner, 2026-11-22). Small frosted circles on the stage edges:
+    they page like the keyboard arrows and double as the "more to swipe" hint. Hidden
+    until the script is ready, so the no-JS scroller stays control-free.
+  -->
+  <button
+    type="button"
+    class="work-slideshow-arrow work-slideshow-arrow--prev"
+    data-slideshow-prev
+    aria-label={labels.previous}
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="m14.5 6-6 6 6 6" />
+    </svg>
+  </button>
+  <button
+    type="button"
+    class="work-slideshow-arrow work-slideshow-arrow--next"
+    data-slideshow-next
+    aria-label={labels.next}
+  >
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="m9.5 6 6 6-6 6" />
+    </svg>
+  </button>
 </div>
