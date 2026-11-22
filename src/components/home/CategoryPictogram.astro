@@ -1,0 +1,82 @@
+---
+import type { WorkCategoryKey } from '@/lib/home-work';
+
+interface Props {
+  category: WorkCategoryKey;
+}
+
+const { category } = Astro.props;
+
+// Colour icons drawn in the logo's own language: thick rounded navy outlines with
+// the logo's yellow→orange gradient as the fill. Presentation attributes only (no
+// style attribute or element) so the strict CSP holds. Decorative: the label carries
+// the meaning. Gradient ids are unique per category; each icon appears once per page.
+const navy = '#002359';
+const gradientId = `pictogram-gradient-${category}`;
+
+const attributes = {
+  viewBox: '0 0 48 48',
+  fill: 'none',
+  'stroke-linecap': 'round',
+  'stroke-linejoin': 'round',
+  'aria-hidden': 'true',
+  focusable: 'false',
+  class: 'size-8 shrink-0 sm:size-10 lg:size-13',
+  'data-pictogram': category,
+} as const;
+---
+
+<svg {...attributes}>
+  <defs>
+    <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fac60a" />
+      <stop offset="1" stop-color="#fa7b0c" />
+    </linearGradient>
+  </defs>
+
+  {category === 'ilumination' && (
+    // Lit bulb: gradient glass, navy outline and screw base, orange rays.
+    <>
+      <path d="M24 3v4M10 9l3 3M38 9l-3 3M4 22h4M40 22h4" stroke="#fa8f0b" stroke-width="3" />
+      <path
+        d="M24 11a11 11 0 0 0-6.6 19.8c1 .8 1.6 2 1.6 3.2V35h10v-1c0-1.2.6-2.4 1.6-3.2A11 11 0 0 0 24 11z"
+        fill={`url(#${gradientId})`}
+        stroke={navy}
+        stroke-width="3"
+      />
+      <path d="M19 40h10M21 45h6" stroke={navy} stroke-width="3" />
+      <path d="M19.5 22a5 5 0 0 1 4-4.5" stroke="#ffffff" stroke-width="2.5" />
+    </>
+  )}
+  {category === 'electricity' && (
+    // Lightning bolt: gradient fill with the navy outline used in the logo.
+    <path
+      d="M28 3 11 27h11l-4 18 19-25H25z"
+      fill={`url(#${gradientId})`}
+      stroke={navy}
+      stroke-width="3"
+    />
+  )}
+  {category === 'climatization' && (
+    // Split air-conditioning unit with an orange power light and cool-blue airflow.
+    <>
+      <rect
+        x="4"
+        y="7"
+        width="40"
+        height="17"
+        rx="4"
+        fill="#ffffff"
+        stroke={navy}
+        stroke-width="3"
+      />
+      <path d="M10 18h28" stroke={navy} stroke-width="3" />
+      <circle cx="37.5" cy="12.5" r="2" fill={`url(#${gradientId})`} />
+      <path
+        d="M14 29q3 3 0 6t0 7M24 29q3 3 0 6t0 7M34 29q3 3 0 6t0 7"
+        stroke="#1e9be0"
+        stroke-width="3"
+      />
+    </>
+  )}
+</svg>

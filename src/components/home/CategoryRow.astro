@@ -1,0 +1,40 @@
+---
+import { getDictionary } from '@/i18n';
+import { categoryRowOrder, workSectionId } from '@/lib/home-work';
+import type { Locale } from '@/lib/routes';
+
+import CategoryPictogram from './CategoryPictogram.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getDictionary(locale);
+---
+
+<!--
+  Sits inside the hero, over the photo, under the logo and copy panel. Three separate
+  tiles in the panel's material (translucent brand blue + blur) with the yellow accent
+  on the top edge, content centred: icon badge above, label below.
+-->
+<div class="hero-copy" data-testid="category-row">
+  <ul class="grid grid-cols-1 gap-2.5 min-[22.5rem]:grid-cols-3 sm:gap-4 lg:gap-5">
+    {categoryRowOrder.map((key) => (
+      <li>
+        <a
+          href={`#${workSectionId(key)}`}
+          data-category={key}
+          class="group flex h-full min-h-11 items-center justify-center gap-3 rounded-panel border-t-4 border-accent bg-brand/80 px-4 py-3 text-center text-white no-underline backdrop-blur-[2px] hover:bg-brand/90 min-[22.5rem]:flex-col min-[22.5rem]:gap-2.5 min-[22.5rem]:px-2 min-[22.5rem]:py-4 sm:gap-3 sm:py-5 lg:gap-4 lg:py-6"
+        >
+          <div class="flex size-12 shrink-0 items-center justify-center rounded-full bg-white ring-2 ring-transparent group-hover:ring-accent sm:size-16 lg:size-20">
+            <CategoryPictogram category={key} />
+          </div>
+          <span class="block font-display text-sm font-semibold leading-tight group-hover:underline sm:text-lg lg:text-xl">
+            {t.home.work.categories[key].title}
+          </span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</div>

@@ -47,11 +47,16 @@ export const en = {
   },
   home: {
     eyebrow: 'Electrician in Calpe',
-    title: 'Electrical installations done safely and properly',
+    // Hero slogan: each line is a question and its answer (answers shown in accent yellow). PENDING owner review.
+    slogan: {
+      broken: { question: 'Broken?', answer: "We'll fix it." },
+      missing: { question: "Don't have one?", answer: "We'll install it." },
+    },
+    // Not rendered for now (owner, 2026-11-22); kept for a later description.
     lead: 'Low-voltage electrical installer with over 20 years of experience in Calpe. Electrical work, air conditioning and maintenance with direct contact.',
     facts: {
       experience: 'Over 20 years of experience',
-      authorization: 'Low-voltage installer (IBTB basic)',
+      authorization: 'Authorised low-voltage installer (RBET)', // PENDING owner review (R13/R76/R77)
       insurance: 'Civil liability insurance',
     },
     contactHeading: 'Tell us what you need',
@@ -138,14 +143,14 @@ export const en = {
   contact: {
     eyebrow: 'Contact',
     title: 'Let us talk about your installation',
-    lead: 'You can contact us by phone, WhatsApp or email. For urgent work, call during opening hours.',
+    lead: 'You can contact us by phone, WhatsApp or email.', // PENDING owner review (R13/R76/R77)
     channelsHeading: 'Contact channels',
     phoneLabel: 'Phone',
     whatsappLabel: 'WhatsApp',
     emailLabel: 'Email',
     hoursLabel: 'Hours',
     hoursValue: 'Monday to Friday, 08:00 to 20:00',
-    hoursNote: 'Urgent work is handled within these hours and may carry a surcharge.',
+    hoursNote: 'Urgent work without an appointment may carry a surcharge.', // PENDING owner review (R13/R76/R77)
     areaLabel: 'Service area',
     areaNote: 'No other areas are covered without prior confirmation.',
     quoteHeading: 'Request a quote',

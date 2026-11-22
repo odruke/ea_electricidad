@@ -81,4 +81,50 @@ describe('translation dictionaries', () => {
       }
     }
   });
+
+  const t3004 = {
+    es: {
+      authorization: 'Instalador autorizado de baja tensión (RBET)',
+      hoursNote: 'Las urgencias sin cita previa pueden tener un recargo.',
+      lead: 'Puede contactar por teléfono, WhatsApp o correo electrónico.',
+    },
+    en: {
+      authorization: 'Authorised low-voltage installer (RBET)',
+      hoursNote: 'Urgent work without an appointment may carry a surcharge.',
+      lead: 'You can contact us by phone, WhatsApp or email.',
+    },
+    fr: {
+      authorization: 'Installateur autorisé basse tension (RBET)',
+      hoursNote: 'Les urgences sans rendez-vous peuvent entraîner un supplément.',
+      lead: 'Vous pouvez nous contacter par téléphone, WhatsApp ou e-mail.',
+    },
+  } as const;
+
+  for (const [locale, expected] of Object.entries(t3004)) {
+    it(`${locale} uses the exact credential, urgent-note and contact-lead copy`, () => {
+      const dictionary = dictionaries[locale as keyof typeof dictionaries];
+
+      expect(dictionary.home.facts.authorization).toBe(expected.authorization);
+      expect(dictionary.contact.hoursNote).toBe(expected.hoursNote);
+      expect(dictionary.contact.lead).toBe(expected.lead);
+    });
+  }
+
+  it('never mentions IBTB in any dictionary string', () => {
+    for (const [locale, dictionary] of Object.entries(dictionaries)) {
+      for (const [key, value] of flattenStrings(dictionary)) {
+        expect(value, `${locale}.${key}`).not.toContain('IBTB');
+      }
+    }
+  });
+
+  it('keeps hoursNote free of digits and weekday words', () => {
+    const weekdays =
+      /lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche/i;
+
+    for (const [locale, dictionary] of Object.entries(dictionaries)) {
+      expect(dictionary.contact.hoursNote, locale).not.toMatch(/\d/);
+      expect(dictionary.contact.hoursNote, locale).not.toMatch(weekdays);
+    }
+  });
 });

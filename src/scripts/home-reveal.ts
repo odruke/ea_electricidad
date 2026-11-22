@@ -32,7 +32,8 @@ function initHomeReveal(): void {
         window.setTimeout(() => element.classList.add('is-revealed'), REVEAL_TIMEOUT_MS);
       }
     },
-    { threshold: 0.15, rootMargin: '0px 0px -10% 0px' },
+    // Start as soon as a sliver is on screen (owner, 2026-11-22: was 0.15 / -10%).
+    { threshold: 0.05, rootMargin: '0px 0px -4% 0px' },
   );
 
   for (const element of elements) {

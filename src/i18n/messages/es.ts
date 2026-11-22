@@ -46,11 +46,16 @@ export const es = {
   },
   home: {
     eyebrow: 'Electricista en Calpe',
-    title: 'Instalaciones eléctricas seguras y bien ejecutadas',
+    // Hero slogan: each line is a question and its answer (answers shown in accent yellow).
+    slogan: {
+      broken: { question: '¿Está roto?', answer: 'Te lo arreglamos.' },
+      missing: { question: '¿No lo tienes?', answer: 'Te lo instalamos.' },
+    },
+    // Not rendered for now (owner, 2026-11-22); kept for a later description.
     lead: 'Instalador eléctrico de baja tensión con más de 20 años de experiencia en Calpe. Trabajos eléctricos, aire acondicionado y mantenimiento con un trato directo.',
     facts: {
       experience: 'Más de 20 años de experiencia',
-      authorization: 'Instalador de baja tensión (IBTB básica)',
+      authorization: 'Instalador autorizado de baja tensión (RBET)',
       insurance: 'Seguro de responsabilidad civil',
     },
     contactHeading: 'Cuéntenos qué necesita',
@@ -140,15 +145,14 @@ export const es = {
   contact: {
     eyebrow: 'Contacto',
     title: 'Hablemos de su instalación',
-    lead: 'Puede contactar por teléfono, WhatsApp o correo electrónico. Para trabajos urgentes, llame dentro del horario de atención.',
+    lead: 'Puede contactar por teléfono, WhatsApp o correo electrónico.',
     channelsHeading: 'Canales de contacto',
     phoneLabel: 'Teléfono',
     whatsappLabel: 'WhatsApp',
     emailLabel: 'Correo electrónico',
     hoursLabel: 'Horario',
     hoursValue: 'Lunes a viernes, de 08:00 a 20:00',
-    hoursNote:
-      'La atención de urgencias se realiza dentro de este horario y puede tener un recargo.',
+    hoursNote: 'Las urgencias sin cita previa pueden tener un recargo.',
     areaLabel: 'Zona de servicio',
     areaNote: 'No se atienden otras zonas sin confirmación previa.',
     quoteHeading: 'Solicitar un presupuesto',

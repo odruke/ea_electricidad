@@ -1,0 +1,14 @@
+node_modules
+dist
+.astro
+.agents
+.opencode
+specs
+pnpm-lock.yaml
+playwright-report
+test-results
+blob-report
+coverage
+AGENTS.md
+MEMORY.md
+skills-lock.json

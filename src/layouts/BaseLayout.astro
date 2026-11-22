@@ -1,11 +1,14 @@
 ---
 import '@fontsource-variable/space-grotesk';
 import '@fontsource-variable/source-sans-3';
+import '@fontsource/barlow-condensed/800.css';
 import '@/styles/global.css';
 
 import Header from '@/components/layout/Header.astro';
+import CallFab from '@/components/layout/CallFab.astro';
 import Footer from '@/components/layout/Footer.astro';
 import Seo from '@/components/seo/Seo.astro';
+import { brandAssets } from '@/config/brand';
 import { getDictionary } from '@/i18n';
 import { localizedPath, type Locale } from '@/lib/routes';
 
@@ -27,7 +30,17 @@ const currentPath = localizedPath(locale, path);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="/logo.jpg" type="image/jpeg" />
+    <link
+      rel="icon"
+      href={brandAssets.icon32.src}
+      type="image/png"
+      sizes={`${brandAssets.icon32.width}x${brandAssets.icon32.height}`}
+    />
+    <link
+      rel="apple-touch-icon"
+      href={brandAssets.appleTouchIcon.src}
+      sizes={`${brandAssets.appleTouchIcon.width}x${brandAssets.appleTouchIcon.height}`}
+    />
     <Seo locale={locale} title={title} description={description} path={path} noindex={noindex} />
   </head>
   <body class="min-h-dvh bg-white text-ink">
@@ -39,5 +52,6 @@ const currentPath = localizedPath(locale, path);
       <slot />
     </main>
     <Footer locale={locale} />
+    <CallFab locale={locale} />
   </body>
 </html>

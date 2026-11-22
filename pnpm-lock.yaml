@@ -175,6 +175,9 @@ importers:
       '@fontsource-variable/space-grotesk':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/barlow-condensed':
+        specifier: ^5.3.0
+        version: 5.3.0
       astro:
         specifier: ^7.4.4
         version: 7.4.4(@types/node@26.6.6)(jiti@2.7.0)(yaml@2.9.1)
@@ -519,6 +522,9 @@ packages:
 
   '@fontsource-variable/space-grotesk@5.3.0':
     resolution: {integrity: sha512-2IxmvfB08i9vnGB3Ym/AXvhRE+8XOjWMXIyDum03c+tPwH0FUoMNQfGpU8NXPxjbws0Vvss3AH0Zqt4oJBBAdw==}
+
+  '@fontsource/barlow-condensed@5.3.0':
+    resolution: {integrity: sha512-RA7MmIx0v3eQ6Gcf74qLVLOwLB0GpPOzx+eU9iG/AmCnSJGcIWYeU8y6CEMGZ210MGwGg5CZhzLkkvyZdTTk1g==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2873,6 +2879,8 @@ snapshots:
   '@fontsource-variable/source-sans-3@5.3.1': {}
 
   '@fontsource-variable/space-grotesk@5.3.0': {}
+
+  '@fontsource/barlow-condensed@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:

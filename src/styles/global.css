@@ -9,6 +9,9 @@
   --color-ink-muted: #4a5568;
   --color-line: #d7dce7;
   --color-surface-muted: #f4f6fb;
+  /* Homepage category bands: pale brand-tinted blue-greys, calmer than pure white. */
+  --color-mist: #e7ecf5;
+  --color-mist-deep: #dce3f0;
   --color-whatsapp: #25d366;
   --color-whatsapp-strong: #1ebe5a;
   --color-whatsapp-ink: #052e16;
@@ -17,9 +20,16 @@
     'Source Sans 3 Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display:
     'Space Grotesk Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Hero slogan only: condensed van-lettering face; falls back to the display face. */
+  --font-slogan: 'Barlow Condensed', 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
 
   --radius-card: 0.75rem;
   --radius-panel: 0.25rem;
+
+  /* Soft lift tinted with the deep brand navy (not grey), for cards on the mist bands. */
+  --shadow-lift:
+    0 1px 2px rgb(0 26 115 / 0.1), 0 4px 10px -4px rgb(0 26 115 / 0.12),
+    0 22px 44px -18px rgb(0 26 115 / 0.34);
 }
 
 @layer base {
@@ -93,6 +103,27 @@
   }
 }
 
+/* Category bands: a soft light falloff from the top plus a very fine grain, so the
+   surface reads as a lit material rather than a flat fill. No pattern or lines. */
+.surface-grain {
+  position: relative;
+  isolation: isolate;
+}
+
+.surface-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgb(255 255 255 / 0.55), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0.1 0 0 0 0 0.45 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:
+    100% 100%,
+    160px 160px;
+}
+
 /* Work slideshow: native horizontal scroller, progressively enhanced by home-slideshow.ts. */
 .work-slideshow {
   --slideshow-gap: 0.75rem;
@@ -107,6 +138,8 @@
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  /* Per-photo shadow: a filter is drawn outside the scroller, so it is not clipped. */
+  filter: drop-shadow(0 2px 3px rgb(0 26 115 / 0.16)) drop-shadow(0 16px 20px rgb(0 26 115 / 0.26));
   transition:
     opacity 650ms cubic-bezier(0.22, 1, 0.36, 1),
     translate 650ms cubic-bezier(0.22, 1, 0.36, 1);
