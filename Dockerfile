@@ -38,16 +38,3 @@ COPY --from=build /app/dist /srv
 ENV SITE_ADDRESS=:8080
 
 EXPOSE 8080
-
-# Public reverse proxy and TLS terminator. Contains no site files or build tooling.
-FROM caddy:2-alpine AS edge
-
-# Same file-capability issue as the web target; the edge binds 80/443 as root with
-# NET_BIND_SERVICE added by Compose, so the file capability is redundant here too.
-RUN if getcap /usr/bin/caddy | grep -q .; then setcap -r /usr/bin/caddy; fi
-
-COPY Caddyfile /etc/caddy/Caddyfile
-
-ENV SITE_ADDRESS=:80
-
-EXPOSE 80 443 443/udp

@@ -4,43 +4,6 @@ services:
   # Public entry point. Terminates TLS, applies headers and redirects, and
   # proxies site traffic to the internal web service. This is the only service
   # that publishes host ports.
-  edge:
-    image: ea-electricidad-edge:local
-    build:
-      context: .
-      target: edge
-    restart: unless-stopped
-    depends_on:
-      web:
-        condition: service_healthy
-    ports:
-      - '80:80'
-      - '443:443'
-      - '443:443/udp'
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
-    volumes:
-      - caddy_data:/data
-      - caddy_config:/config
-    healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8081/healthz']
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    networks:
-      - app
-    logging:
-      driver: json-file
-      options:
-        max-size: '10m'
-        max-file: '3'
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
 
   # Internal static site. Reserved for the future backend: same network, no
   # published ports, routed through the edge (see Caddyfile).
@@ -62,7 +25,11 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - app
+      app: {}
+
+      proxy:
+        aliases:
+          - ea-electricidad-web
     logging:
       driver: json-file
       options:
@@ -77,6 +44,6 @@ networks:
   app:
     driver: bridge
 
-volumes:
-  caddy_data:
-  caddy_config:
+  proxy:
+    external: true
+    name: proxy
