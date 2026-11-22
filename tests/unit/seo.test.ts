@@ -25,6 +25,8 @@ describe('SEO URL helpers', () => {
   });
 
   it('resolves absolute asset URLs', () => {
-    expect(absoluteAssetUrl(siteUrl, '/logo.jpg')).toBe('https://example.com/logo.jpg');
+    expect(absoluteAssetUrl(siteUrl, '/brand/share.png')).toBe(
+      'https://example.com/brand/share.png',
+    );
   });
 });

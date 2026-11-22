@@ -48,11 +48,16 @@ export const fr = {
   },
   home: {
     eyebrow: 'Électricien à Calpe',
-    title: 'Des installations électriques sûres et bien réalisées',
+    // Hero slogan: each line is a question and its answer (answers shown in accent yellow). PENDING owner review.
+    slogan: {
+      broken: { question: "C'est cassé ?", answer: 'On vous le répare.' },
+      missing: { question: "Vous ne l'avez pas ?", answer: "On vous l'installe." },
+    },
+    // Not rendered for now (owner, 2026-11-22); kept for a later description.
     lead: "Installateur électrique basse tension avec plus de 20 ans d'expérience à Calpe. Travaux électriques, climatisation et entretien, avec un contact direct.",
     facts: {
       experience: "Plus de 20 ans d'expérience",
-      authorization: 'Installateur basse tension (IBTB de base)',
+      authorization: 'Installateur autorisé basse tension (RBET)', // PENDING owner review (R13/R76/R77)
       insurance: 'Assurance responsabilité civile',
     },
     contactHeading: 'Dites-nous ce dont vous avez besoin',
@@ -142,15 +147,14 @@ export const fr = {
   contact: {
     eyebrow: 'Contact',
     title: 'Parlons de votre installation',
-    lead: "Vous pouvez nous contacter par téléphone, WhatsApp ou e-mail. Pour les travaux urgents, appelez pendant les heures d'ouverture.",
+    lead: 'Vous pouvez nous contacter par téléphone, WhatsApp ou e-mail.', // PENDING owner review (R13/R76/R77)
     channelsHeading: 'Moyens de contact',
     phoneLabel: 'Téléphone',
     whatsappLabel: 'WhatsApp',
     emailLabel: 'E-mail',
     hoursLabel: 'Horaires',
     hoursValue: 'Du lundi au vendredi, de 08:00 à 20:00',
-    hoursNote:
-      'Les urgences sont traitées pendant ces horaires et peuvent entraîner un supplément.',
+    hoursNote: 'Les urgences sans rendez-vous peuvent entraîner un supplément.', // PENDING owner review (R13/R76/R77)
     areaLabel: "Zone d'intervention",
     areaNote: "Aucune autre zone n'est desservie sans confirmation préalable.",
     quoteHeading: 'Demander un devis',

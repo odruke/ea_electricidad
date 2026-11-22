@@ -1,7 +1,7 @@
 ---
 import Container from '@/components/ui/Container.astro';
 import { getDictionary } from '@/i18n';
-import type { WorkCategory } from '@/lib/home-work';
+import { workSectionId, type WorkCategory } from '@/lib/home-work';
 import type { Locale } from '@/lib/routes';
 
 import WorkSlideshow from './WorkSlideshow.astro';
@@ -19,11 +19,12 @@ const stageFirst = category.stageSide === 'left';
 const revealDirection = stageFirst ? 'left' : 'right';
 const stageOrder = stageFirst ? 'md:order-1' : 'md:order-2';
 const copyOrder = stageFirst ? 'md:order-2' : 'md:order-1';
-const toneClass = category.tone === 'muted' ? 'bg-surface-muted' : 'bg-white';
+const toneClass = category.tone === 'muted' ? 'bg-mist-deep' : 'bg-mist';
 ---
 
 <section
-  class:list={['py-14 sm:py-20', toneClass]}
+  id={workSectionId(category.key)}
+  class:list={['surface-grain scroll-mt-20 py-14 sm:py-20', toneClass]}
   aria-labelledby={`work-${category.key}`}
   data-testid="work-category"
   data-category={category.key}
@@ -39,7 +40,12 @@ const toneClass = category.tone === 'muted' ? 'bg-surface-muted' : 'bg-white';
         />
       </div>
 
-      <div class:list={['md:col-span-5 lg:col-span-4', copyOrder]}>
+      <div
+        class:list={[
+          'rounded-panel border-t-4 border-accent bg-white p-6 shadow-lift sm:p-8 md:col-span-5 lg:col-span-4',
+          copyOrder,
+        ]}
+      >
         <div data-reveal="up">
           <h2
             id={`work-${category.key}`}

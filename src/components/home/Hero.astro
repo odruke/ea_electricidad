@@ -1,6 +1,8 @@
 ---
 import ButtonLink from '@/components/ui/ButtonLink.astro';
 import Container from '@/components/ui/Container.astro';
+import CategoryRow from '@/components/home/CategoryRow.astro';
+import { brandAssets } from '@/config/brand';
 import { getDictionary } from '@/i18n';
 import { localizedPath, type Locale } from '@/lib/routes';
 
@@ -9,11 +11,19 @@ interface Props {
 }
 
 const { locale } = Astro.props;
+const { logoBlue, logoWhite } = brandAssets;
 const t = getDictionary(locale);
 const contactHref = localizedPath(locale, '/contact/');
 const servicesHref = localizedPath(locale, '/services/');
 
-const facts = [t.home.facts.experience, t.home.facts.authorization, t.home.facts.insurance];
+// Slogan size follows the panel width (container units) so every question and answer
+// stays on one line. Factor = 97% of 100 / (longest line in em), measured per locale;
+// French has the longest lines. Re-measure if the slogan font or wording changes.
+const sloganSize: Record<Locale, string> = {
+  es: 'text-[min(14.9cqi,4.75rem)]',
+  en: 'text-[min(16.3cqi,4.75rem)]',
+  fr: 'text-[min(13.15cqi,4.75rem)]',
+};
 ---
 
 <section class="on-dark relative isolate overflow-hidden bg-brand text-white" data-testid="hero">
@@ -29,42 +39,77 @@ const facts = [t.home.facts.experience, t.home.facts.authorization, t.home.facts
   />
   <div class="hero-scrim absolute inset-0 -z-10" aria-hidden="true"></div>
 
-  <Container class="relative">
+  <Container class="relative lg:max-w-[78rem]">
     <div class="flex min-h-[33rem] items-end pb-5 pt-16 sm:min-h-[31rem] sm:pb-8 lg:min-h-[28rem] lg:items-center lg:py-10">
-      <div class="hero-copy w-full max-w-2xl border-l-4 border-accent bg-brand/80 p-5 backdrop-blur-[2px] sm:p-7 lg:max-w-[42rem] lg:p-8">
-        <p class="text-sm font-semibold text-accent">{t.home.eyebrow}</p>
-        <h1 class="mt-3 text-[clamp(2.15rem,3.4vw,3rem)] font-semibold leading-[1.04] tracking-[-0.025em]">
-          {t.home.title}
-        </h1>
-        <p class="mt-4 max-w-[58ch] text-base leading-relaxed text-white/90 sm:text-lg">
-          {t.home.lead}
-        </p>
+      <div
+        class="w-full lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:gap-10"
+        data-testid="hero-grid"
+      >
+        <div
+          class="hero-copy mb-4 flex lg:hidden"
+          aria-hidden="true"
+          data-testid="hero-logo-compact"
+        >
+          <img
+            src={logoBlue.src}
+            width={logoBlue.width}
+            height={logoBlue.height}
+            alt=""
+            loading="eager"
+            decoding="async"
+            class="h-32 w-auto sm:h-40"
+          />
+        </div>
 
-        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href={contactHref} variant="accent">
-            {t.cta.quote}
-          </ButtonLink>
-          <ButtonLink href={servicesHref} variant="outline-light">
-            {t.cta.viewServices}
-          </ButtonLink>
+        <div class="hero-copy relative hidden lg:block" aria-hidden="true" data-testid="hero-logo">
+          <img
+            src={logoWhite.src}
+            width={logoWhite.width}
+            height={logoWhite.height}
+            alt=""
+            loading="eager"
+            decoding="async"
+            class="absolute inset-0 h-full w-full object-contain"
+          />
+        </div>
+
+        <div
+          class="hero-copy @container w-full max-w-2xl border-l-4 border-accent bg-brand/80 p-5 backdrop-blur-[2px] sm:p-7 lg:max-w-none lg:p-8"
+          data-testid="hero-panel"
+        >
+          <p class="text-sm font-semibold text-accent">{t.home.eyebrow}</p>
+          <h1
+            class:list={[
+              'mt-3 font-slogan font-extrabold leading-[0.95] tracking-[0.005em]',
+              sloganSize[locale],
+            ]}
+          >
+            {[t.home.slogan.broken, t.home.slogan.missing].map(({ question, answer }, index) => (
+              <>
+                <span
+                  class:list={['block whitespace-nowrap text-white', index > 0 && 'mt-[0.3em]']}
+                >
+                  {question}
+                </span>{' '}
+                <span class="block whitespace-nowrap text-accent">{answer}</span>{' '}
+              </>
+            ))}
+          </h1>
+
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <ButtonLink href={contactHref} variant="accent">
+              {t.cta.quote}
+            </ButtonLink>
+            <ButtonLink href={servicesHref} variant="outline-light">
+              {t.cta.viewServices}
+            </ButtonLink>
+          </div>
         </div>
       </div>
     </div>
+
+    <div class="pb-6 sm:pb-8 lg:-mt-2 lg:pb-10">
+      <CategoryRow locale={locale} />
+    </div>
   </Container>
 </section>
-
-<div class="on-dark border-b border-white/15 bg-brand text-white">
-  <Container>
-    <ul
-      class="grid divide-y divide-white/15 py-1 sm:grid-cols-3 sm:divide-x sm:divide-y-0"
-      data-testid="credential-rail"
-    >
-      {facts.map((fact) => (
-        <li class="flex items-center gap-3 py-3 pr-4 text-sm text-white/90 sm:px-5 sm:first:pl-0 sm:last:pr-0">
-          <span class="h-2 w-2 shrink-0 bg-accent" aria-hidden="true" />
-          <span>{fact}</span>
-        </li>
-      ))}
-    </ul>
-  </Container>
-</div>

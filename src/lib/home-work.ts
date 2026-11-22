@@ -60,3 +60,15 @@ export const workCategories: readonly WorkCategory[] = [
     ],
   },
 ];
+
+/** Order of the category pictogram row: the owner's order (2026-11-22), same as the bands. */
+export const categoryRowOrder: readonly WorkCategoryKey[] = [
+  'ilumination',
+  'electricity',
+  'climatization',
+];
+
+/** Id of a category `<section>` (R75). The heading ids stay `work-${key}`. */
+export function workSectionId(key: WorkCategoryKey): string {
+  return `work-section-${key}`;
+}

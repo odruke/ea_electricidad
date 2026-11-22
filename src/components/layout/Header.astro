@@ -1,4 +1,5 @@
 ---
+import { brandAssets } from '@/config/brand';
 import { site } from '@/config/site';
 import { getDictionary } from '@/i18n';
 import { localizedPath, type Locale } from '@/lib/routes';
@@ -33,13 +34,13 @@ function isActive(href: string): boolean {
 <header class="sticky top-0 z-40 border-b border-line bg-white">
   <Container>
     <div class="flex h-16 items-center justify-between gap-4">
-      <a href={localizedPath(locale, '/')} class="flex min-w-0 items-center gap-3 no-underline">
+      <a href={localizedPath(locale, '/')} class="flex min-w-0 items-center gap-1.5 no-underline">
         <img
-          src="/logo.jpg"
+          src={brandAssets.logoBlue.src}
           alt=""
-          width="44"
-          height="44"
-          class="h-11 w-11 shrink-0 rounded"
+          width={brandAssets.logoBlue.width}
+          height={brandAssets.logoBlue.height}
+          class="h-11 w-auto shrink-0"
           loading="eager"
           decoding="async"
         />

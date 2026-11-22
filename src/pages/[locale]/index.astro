@@ -1,4 +1,5 @@
 ---
+import CredentialRail from '@/components/home/CredentialRail.astro';
 import Hero from '@/components/home/Hero.astro';
 import WorkCategories from '@/components/home/WorkCategories.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
@@ -24,6 +25,7 @@ const whatsappHref = whatsappUrl(t.whatsapp.message);
   path="/"
 >
   <Hero locale={locale} />
+  <CredentialRail locale={locale} />
   <WorkCategories locale={locale} />
 
   <section class="on-dark border-t-4 border-accent bg-brand text-white">

@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Browser, type Page } from '@playwright/test';
+import { expect, test, type Browser } from '@playwright/test';
+import { waitForMotion } from '../support/motion';
 
 const locales = ['es', 'en', 'fr'] as const;
 const fallbackBaseURL = process.env.BASE_URL ?? 'http://127.0.0.1:4321';
@@ -19,26 +20,6 @@ async function openWithJavaScriptDisabled(browser: Browser, path: string) {
   const page = await context.newPage();
   await page.goto(path);
   return { context, page };
-}
-
-/**
- * Let the entrance transitions settle before auditing. Axe blends the colors of
- * an element that is partway through a fade and reports a false contrast
- * violation, so audit the stable state instead.
- */
-async function waitForMotion(page: Page): Promise<void> {
-  await page.evaluate(async () => {
-    await new Promise((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))),
-    );
-
-    await Promise.race([
-      Promise.all(
-        document.getAnimations().map((animation) => animation.finished.catch(() => undefined)),
-      ),
-      new Promise((resolve) => setTimeout(resolve, 3000)),
-    ]);
-  });
 }
 
 test.describe('routing and localization', () => {

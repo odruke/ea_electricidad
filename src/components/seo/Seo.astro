@@ -1,4 +1,5 @@
 ---
+import { brandAssets } from '@/config/brand';
 import { getEnv } from '@/config/env';
 import { site } from '@/config/site';
 import { getDictionary } from '@/i18n';
@@ -20,7 +21,7 @@ const t = getDictionary(locale);
 const canonical = canonicalUrl(env.SITE_URL, locale, path);
 const alternates = alternateUrls(env.SITE_URL, path);
 const defaultAlternate = alternates.find((alternate) => alternate.locale === 'es');
-const image = absoluteAssetUrl(env.SITE_URL, '/logo.jpg');
+const image = absoluteAssetUrl(env.SITE_URL, brandAssets.share.src);
 const robots = env.SITE_ENV !== 'production' || noindex ? 'noindex, nofollow' : 'index, follow';
 
 const openGraphLocales: Record<Locale, string> = {

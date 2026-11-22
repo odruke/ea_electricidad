@@ -5,12 +5,13 @@ Compact standing instructions for OpenCode agents. `MEMORY.md` holds current sta
 ## Read first
 
 - Read `MEMORY.md` at the start of every task and update it at the end (keep it ~50 lines or fewer).
-- Read the relevant `specs/NNN-*/spec.md`, `plan.md`, and `task.md` before touching a feature.
+- Read the relevant `specs/NNN-*/spec.md`, `plan.md`, and `tasks.md` before touching a feature.
 - Do not duplicate these permanent rules into `MEMORY.md`.
 
 ## Current repository state
 
-- `specs/001-project-foundation/` is committed. `specs/002-homepage/` is implemented on `feat/002-homepage` (uncommitted; revised 2026-11-06) with the owner's visual review and commit PENDING. The owner handles commits, pushes, and deployment.
+- `specs/001-project-foundation/` and `specs/002-homepage/` are committed (002 in `5edbb07` on `feat/002-homepage`); the owner's visual approval of the 002 motion revision and crops is PENDING. The owner handles commits, pushes, and deployment.
+- Known code issues awaiting fixes are logged in `BACKLOG.md`; fix them only with the owner's go-ahead and remove each entry once verified.
 - Stack: Astro 7.4.4 static output, TypeScript strict, Tailwind 4, pnpm 12.16.1, Node 24.16.0.
 - Commands: `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm check`, `pnpm lint`, `pnpm format:check`, `pnpm test`, `pnpm test:e2e`, `pnpm validate`.
 - Container workflow: `compose.yaml` (`edge` + `web` on the private `app` network), `Dockerfile` (`web`/`edge` targets), `Caddyfile` (public edge), `Caddyfile.web` (internal static server), `Makefile` (`build`, `up`, `down`, `restart`, `logs`, `status`, `smoke`, `clean`), `scripts/smoke.sh`.
@@ -25,7 +26,7 @@ Compact standing instructions for OpenCode agents. `MEMORY.md` holds current sta
 
 ## Workflow (spec-driven)
 
-- Meaningful work: create `specs/NNN-feature-name/` with `spec.md` (requirements, acceptance criteria, edge cases), `plan.md` (approach, trade-offs, dependencies), and `task.md` (ordered, verifiable tasks).
+- Meaningful work: create `specs/NNN-feature-name/` with `spec.md` (requirements, acceptance criteria, edge cases), `plan.md` (approach, trade-offs, dependencies), and `tasks.md` (ordered, verifiable tasks).
 - Use sequential zero-padded ids; `001-project-foundation` and `002-homepage` exist, so the next new spec uses `003`.
 - Write or update the spec before implementing, and record significant technical trade-offs in `plan.md`.
 - Ask when business, legal, or technical requirements are unclear. Record assumptions explicitly and mark unconfirmed decisions `PENDING`; never silently invent requirements.

@@ -1,0 +1,29 @@
+---
+import IconPhone from '@/components/ui/icons/IconPhone.astro';
+import { site } from '@/config/site';
+import { getDictionary } from '@/i18n';
+import type { Locale } from '@/lib/routes';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getDictionary(locale);
+---
+
+<!--
+  Floating call button for phones and tablets (hidden from `lg`, where the header
+  carries the contact actions). Bottom-right sits in the right thumb's natural reach;
+  the bottom offset respects the iOS home-indicator safe area. Below the header
+  menu (z-50) and the header itself (z-40). The footer reserves space so it never
+  covers the last line of content.
+-->
+<a
+  href={site.phone.href}
+  aria-label={`${t.cta.call} ${site.phone.display}`}
+  data-testid="call-fab"
+  class="fixed right-4 bottom-[max(1rem,calc(env(safe-area-inset-bottom)+0.75rem))] z-30 flex size-14 items-center justify-center rounded-full bg-accent text-brand no-underline shadow-lift ring-2 ring-white/80 transition-transform hover:bg-accent-strong active:scale-95 lg:hidden print:hidden [&>svg]:size-6"
+>
+  <IconPhone />
+</a>

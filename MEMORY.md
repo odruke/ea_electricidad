@@ -4,47 +4,66 @@ Keep concise (~50 lines). Update after meaningful work and remove obsolete infor
 
 ## Current State
 
-- `001-project-foundation` is committed. `002-homepage` is implemented on `feat/002-homepage` (revised 2026-11-06) and uncommitted; the owner reviews, commits, and deploys.
-- Homepage: short full-bleed landscape hero over `hero.jpg` (Peñón de Calpe) with a translucent blue scrim and copy panel; a three-fact credential rail; exactly three work categories — Iluminación, Electricidad, Climatización — each with a dominant slideshow stage (two images at `lg`, one below) and four bullets; compact blue closing band and three-column footer; gentle 1.5s/1.8s slide reveals without scroll hijack; green WhatsApp and telephone-mark call actions site-wide.
-- The three stages auto-advance every 8s with a right-to-left fade handoff (450ms out, 650ms in) and move by one visible page, so desktop pairs never repeat a photo. Iluminación opens on `skyscraper1` and, at `lg`, `skyscraper1` + `skyscraper2`; Climatización's odd count ends on a lone fifth image with a trailing gap. There are no visible controls or counter; keyboard arrows/Home/End, hover/focus/off-screen pause, and click/tap or Space/Enter pause remain. Reduced motion starts paused and advances instantly; no-JS keeps the native scroller.
-- Removed from the homepage in the 2026-11-05 revision: the circuit-row services panel and the four-photo job triptych (`ServicesPanel.astro`, `WorkGallery.astro`). The five canonical service categories remain on `/services/`.
-- Homepage photos are confirmed real EA jobs: `hero.jpg` plus the 6/4/5 images in `public/homepage/{ilumination,electricity,climatization}`. Iluminación's array is ordered with `skyscraper1`/`skyscraper2` first so the opening frame is fixed. Neutral localized alt text is in use; per-photo descriptions/captions remain PENDING. `header.jpg` is unused but left in place.
-- Final checks (2026-11-06): `pnpm validate` passed (lint, format, `pnpm check` 0 errors, 32/32 unit tests, 17-page build); `pnpm test:e2e` 43/43 including axe in `es`/`en`/`fr` and the fade/page-pair/opening-pair tests.
-- Review screenshots: `/tmp/opencode/ea-002-screenshots` (regenerated 2026-11-06 after the second motion revision). The owner's first review asked for slower reveals, the `skyscraper1`/`skyscraper2` opening, and no repeated desktop pairs; final approval of those changes, the odd Climatización tail, and the crops is PENDING.
-- Responsive/hero measurements (2026-11-05): overflow 0 at 320/375/768/1024/1280/1440; hero heights 579/528/496/448/448/454px; desktop H1 stays two lines.
-- Astro 7.4.4 static site, TypeScript strict, Tailwind CSS 4, Node 24.16.0, pnpm 12.16.1; locales `es` (default), `en`, `fr` via typed dictionaries; pages: home, services, contact, legal (noindex), localized 404; root redirects to `/es/`. SEO: canonical, hreflang + `x-default`, sitemap, staging `noindex` and disallow-all robots.
-- Container stack: `edge` (public Caddy) + `web` (internal Caddy) on the private `app` network; project name `ea-electricidad`. Images `ea-electricidad-edge:local`/`ea-electricidad-web:local` come from one multi-stage `Dockerfile`; only `edge` publishes TCP 80/443 + UDP 443, while `web` uses `expose: 8080`.
-- `Caddyfile` is the edge (TLS, headers, redirects, compression, logs, proxy); `Caddyfile.web` is the internal static server. `scripts/smoke.sh` checks HTTP behavior plus local topology: health, only-edge exposure, edge→web DNS, no Node.js in either image.
-- `Makefile` targets: `help`, `build`, `up`, `down`, `restart`, `logs`, `status`, `smoke`, `clean`. No `deploy` target, no Git commands, no CI, no `.github/`; checks run locally (`pnpm validate`, `pnpm test:e2e`, `make build`, `make up`, `make smoke`).
-- Docker image build/up/smoke not verified by the agent: no access to `/var/run/docker.sock`. The `web` crash-loop cause is fixed in both Dockerfile targets (Caddy file capability + empty bounding set), pending the owner's rebuild.
-- No backend, quote form, email, uploads, database, analytics, cookies, or CMS in `001` or `002`; `/api/*` is reserved.
+- `001-project-foundation` and `002-homepage` are committed up to `5edbb07` on `feat/002-homepage`. The owner reviews, commits and deploys. The owner staged the config dotfiles on 2026-11-10; they are not committed yet.
+- **Spec 002 change request 2026-11-21: implemented and validated (APPROVED, 0 fix rounds; `specs/002-homepage/VERIFICATION.md`). Not committed.** It covers:
+  - brand assets in `public/brand/` (logo-blue 362×324, logo-white 833×746, icon-32, apple-touch-icon, share 1200×630), declared in `src/config/brand.ts`;
+  - the hero logo: white beside the panel from `lg` (1.4fr/1fr grid, absolute `object-contain`), blue above the panel below `lg`;
+  - the header logo at 44 px, favicons, and the share image;
+  - the RBET credential;
+  - the category pictogram row (`CategoryRow.astro`, links to `#work-section-{key}`);
+  - the new `hoursNote` and `contact.lead`;
+  - the credential rail moved into `CredentialRail.astro`;
+  - the preview page and assets deleted. The cut-outs are gone, so asset generation cannot be re-run.
+- **Owner-requested design edits 2026-11-22, outside the SDD flow, NOT yet reflected in spec 002 or the e2e suite:**
+  - Hero: logo moved to the left (owner), grid `1fr/1.6fr`, panel `lg:max-w-none`, hero Container `lg:max-w-[78rem]`.
+  - Pictogram row moved INSIDE the hero (under logo + panel, over the photo), as three separate translucent tiles (panel material, yellow top edge, centred icon badge + label; stacked rows below 360 px). Order is now Iluminación, Electricidad, Climatización. Icons are colour (navy outline + logo gradient, sky-blue airflow, 48 viewBox) on white circles.
+  - Hero H1 is now the slogan (`home.slogan.{broken,missing}.{question,answer}`, answers in accent yellow, four lines; each phrase stays on one line (`whitespace-nowrap`), sized from the panel width via `@container` + per-locale `sloganSize` cqi factors (es 14.9, en 16.3, fr 13.15) measured on Barlow Condensed 800, capped at 4.75rem, so re-measure if the font or wording changes; 0.3em gap between the two sentences). `home.title` was removed; `home.lead` is kept but not rendered. The font token `--font-slogan` is Barlow Condensed 800, falling back to Space Grotesk. `@fontsource/barlow-condensed` (owner-installed 2026-11-22) is imported in BaseLayout (800 only). en/fr slogan PENDING review; es slogan uses "tú" while the site uses "usted".
+  - Reveals start sooner: `home-reveal.ts` observer `threshold 0.05`, `rootMargin -4%` (was 0.15 / -10%). Durations are unchanged.
+  - Category bands restyled: `bg-mist` #e7ecf5 / `bg-mist-deep` #dce3f0 (replacing white/surface-muted), `.surface-grain` (top light falloff + SVG fractal-noise grain at 8% alpha; the owner rejected the blueprint grid), navy-tinted (#001a73) photo drop-shadow filter on `.work-slideshow-track`, copy column as a white `shadow-lift` card with a yellow top edge.
+  - Site-wide floating call button `CallFab.astro` (below `lg` only, bottom-right, 56 px, yellow, safe-area offset, z-30); the footer gets `pb-24 lg:pb-8` so it never covers footer text. Known: on a 390×844 first screen it overlaps the corner of the Climatización tile.
+  - Conflicts: spec R5/R70/R72/R73, R43 (home.title/lead), e2e site-brand lead check, acceptance 23, and e2e "places the row between the hero and the rail", "draws three original decorative pictograms", and the e2e `rowKeys` order. Next: `/ssd-change 002-homepage` to align the spec and tests.
+- Checks (2026-11-21): gate green (lint, format, astro check 0, vitest 70/70, 17 pages). E2E 184/184 on system Chrome 158, axe clean in es/en/fr. The dist audit finds no inline script/style, no IBTB, no JSON-LD.
+- Review screenshots (temporary): the session scratchpad `002-review/` (`home-{locale}-{width}-{full|hero|row|header}.png`). Regenerate them if missing.
+- Every run decision is in `specs/002-homepage/DECISIONS.md` (D-1..D-61, G-1..G-4, V-T3001..V-T3010). The lesson is `docs/learning/009-logo-y-fila-de-categorias.md`.
+- The homepage keeps the 002 design: full-bleed hero over `hero.jpg` (Peñón), three work categories with 8 s page-sized slideshows, gentle reveals, green WhatsApp/phone actions. Photos are real EA jobs; per-photo alt text is PENDING. `hero.webp` is unused (BACKLOG B1).
+- Code review 2026-11-10: open issues B1–B7 are in `BACKLOG.md`, awaiting the owner's go-ahead.
+- Constitution v1.0 (8 principles) was approved by the owner on 2026-11-20 but is NOT on disk; hooks block `docs/constitution.md` and `BACKLOG.md` writes. The approved text plus BACKLOG B8 exist only in that conversation.
+- SDD overrides:
+  - the tasks file is `tasks.md` (owner, D-58; spec 001 still has a legacy `task.md`);
+  - specs use `Status: draft | approved | implemented` plus `VERIFICATION.md`;
+  - the orchestrator may approve spec, plan and tasks; constitution and rules changes need the owner.
+- Stack: Astro 7.4.4 static output, TypeScript strict, Tailwind 4, Node 24.16.0, pnpm 12.16.1; locales es (default), en, fr. Container stack: `edge` + `web` Caddy on the private `app` network; only `edge` publishes ports. Docker is unverified by agents (no socket access).
+- No backend, form, email, uploads, DB, analytics, cookies or CMS yet; `/api/*` is reserved.
 
 ## Decisions
 
-- Public site remains portable static output; Caddy is the only production runtime; no Node.js.
-- Owner owns Git and deployment: agents create `feat/NNN-name` branches only and never commit/push/reset unasked.
-- Local-first delivery: `make build && make up` on any Docker-capable host; no registry, no remote deploy target, no provider-specific config.
-- Root/trailing-slash redirects and security headers live on the edge; localized 404s live on web.
-- Future backend joins the same `app` network, publishes no port, and is routed through the edge under `/api/*`.
-- Scripts/styles stay external (`assetsInlineLimit: 0`, `inlineStylesheets: 'never'`) for strict CSP; `i18n.routing.redirectToDefaultLocale` is `false` to avoid a duplicate-route build warning.
-- 002 keeps the H1 text, metadata, routes, five service categories, and canonical/hreflang behavior; no new dependencies or image-optimization pipeline.
-- 002 hero: `clamp(2.15rem, 3.4vw, 3rem)` H1, `lg:max-w-[42rem]` panel, ~28rem desktop / ~33rem mobile. Category stage `md:col-span-7 lg:col-span-8`, consistent `aspect-[3/4]`, 8s slideshow with page-sized advances and the fade handoff; reveals use 1500ms opacity/translate, 1800ms clip-path, and `cubic-bezier(0.4, 0, 0.2, 1)`; button transitions exclude `outline-color` so focus rings appear immediately.
+- Portable static output; Caddy is the only runtime; no Node in production. Local-first: `make build && make up`.
+- The owner owns Git and deployment: agents never add, commit, push or reset.
+- Scripts and styles stay external (`assetsInlineLimit: 0`, `inlineStylesheets: 'never'`) for strict CSP. Pictograms are inline SVG with presentation attributes only.
+- Brand assets are prepared once and committed as static files: no image pipeline and no new dependency. Downscale with premultiplied BOX, then a 256-colour palette without dither, which keeps the 1-px frame transparent. The white logo uses the 833×746 cap, because 2× its 436.7 px render exceeds the source.
+- The share image switched to `/brand/share.png`. `public/logo.jpg` is now unreferenced by the site and kept until the owner decides; `logo2.jpeg` is the source.
+- The pictogram row is three across from 360 px and stacked below that. It has no JS and no reveal, and its sections use `scroll-mt-20` against the 65 px sticky header.
+- Header logo-to-name gap is `gap-1.5`, so the name gets no less room than at `5edbb07`.
 
 ## Learnings and Pitfalls
 
-- Never advertise 24/7 availability, unconfirmed coverage, or invented business claims.
-- Keep the existing `public/logo.jpg` on light surfaces; no vector/transparent asset yet.
-- `handle_errors` keeps the 404 status and must re-import headers; it catches Caddy errors (502/504), not upstream 404s, so localized bodies pass through the proxy.
-- Astro preview returns 404 for `/es` without a slash; the edge adds the `308` redirect. Start order matters: edge waits for a healthy web via `depends_on`.
-- Never use `docker compose down -v`; certificates live in the Caddy volumes.
-- The official Caddy image sets `cap_net_bind_service=+ep` on `/usr/bin/caddy`; with `cap_drop: ALL` the empty bounding set makes `execve` fail with `operation not permitted` (exit 255). Strip it at build time with `getcap`/`setcap -r`.
-- Never publish the web service port, and never route backend traffic around the edge.
-- `.agents/skills/` is installer-managed through `skills-lock.json`; do not hand-edit it.
-- Docker access needs the `docker` group or root; the agent must ask the owner to run privileged or Docker commands and share the output.
-- 002 slideshow: no visible controls; the track keeps a localized group label and click/Space pause, and hides its scrollbar only after JS marks the root ready. Desktop advances a full pair; a `data-odd` trailing spacer lets the lone Climatización image reach the start edge. `skyscraper3.jpg` is 9:16 and needs its own crop review. The agent cannot preview images; the owner reviews crops.
-- Axe blends colors during the reveal transition and can report a false contrast violation; the E2E audit waits for motion to settle. Astro 7 preview daemonizes; if Playwright reports an early webServer exit, start `pnpm preview --host 127.0.0.1 --port 4321`, set `BASE_URL=http://127.0.0.1:4321`, and stop it with `pnpm exec astro preview stop`.
+- Never advertise 24/7, unconfirmed coverage, or invented claims. The en/fr credential, note and lead carry `// PENDING owner review`.
+- Agent shells: `pnpm` may be missing, so use `node_modules/.bin/*`. Playwright has no bundled browser, so use git-ignored `.tmp/playwright.chrome.config.mjs` (`channel: 'chrome'`). Astro 7 preview daemonizes: run `astro preview --host 127.0.0.1 --port 4321`, set `BASE_URL`, and finish with `astro preview stop` (also before rebuilding).
+- ESLint and Prettier check `.tmp/` too. Tests must never contain the literal preview path; build it as `['logo','preview'].join('-')`.
+- Measure layout only after `waitForFonts` and `waitForMotion`. At 1024 px the white logo is width-limited, so geometry tests need the "height OR width" branch.
+- Axe can report false contrast during reveals; audit after motion settles.
+- `handle_errors` keeps the 404 status and must re-import headers. Never run `docker compose down -v` (it deletes certificates). Strip Caddy's file capability under `cap_drop: ALL`. Never publish the web port.
+- `.agents/skills/` is installer-managed; do not hand-edit it. Docker and privileged commands need the owner.
+- Orchestrator and agent hooks: the planner may write `spec.md`, `plan.md` and `tasks.md` only. The reviewer's shell blocks `>`. The orchestrator's shell blocks pipes and `cmp`.
 
 ## Next Steps
 
-- Owner provides per-photo descriptions/alt text, reviews the second motion revision (slower reveals, opening pair, odd Climatización tail), the hero crop, category layouts, and 3:4 crops, then commits `feat/002-homepage` when ready; agents do not commit or push.
-- Owner rebuilds the Caddy fix and verifies: `make build && make up && make status && make smoke`.
+- **Owner:**
+  - visual review (VERIFICATION.md "Not verified" steps);
+  - en/fr wording;
+  - say whether EA does urgent work outside hours (D-33);
+  - apply the AGENTS.md business-fact edits (final report, D-61);
+  - decide on `public/logo.jpg` and `logo2.jpeg`;
+  - commit the change, then `make build && make up && make smoke`.
+- Owner writes `docs/constitution.md` v1.0 and BACKLOG B8. Then `/ssd-spec 003-client-script-logic`.
+- Optional: run the R62/R63 geometry tests in all three locales; rename spec 001's `task.md` to `tasks.md`; ask the client for a vector logo.

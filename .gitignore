@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+.astro/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Test and coverage artifacts
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Editor and OS files
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Local tooling
+.tmp/
