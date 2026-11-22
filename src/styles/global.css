@@ -192,6 +192,92 @@
   }
 }
 
+/* Arrow navigation: frosted circles on the stage edges, hidden until the script is ready. */
+.work-slideshow-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 9999px;
+  background: rgb(255 255 255 / 0.78);
+  color: var(--color-brand);
+  box-shadow:
+    0 1px 2px rgb(0 26 115 / 0.18),
+    0 6px 16px -6px rgb(0 26 115 / 0.45);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  opacity: 0.9;
+  translate: 0 -50%;
+  transition:
+    opacity 200ms ease,
+    background-color 200ms ease,
+    scale 200ms ease;
+}
+
+.work-slideshow-arrow svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.work-slideshow-arrow--prev {
+  left: 0.625rem;
+}
+
+.work-slideshow-arrow--next {
+  right: 0.625rem;
+}
+
+.work-slideshow.slideshow-ready .work-slideshow-arrow {
+  display: flex;
+}
+
+.work-slideshow-arrow:hover {
+  background: rgb(255 255 255 / 0.95);
+  opacity: 1;
+}
+
+.work-slideshow-arrow:active {
+  scale: 0.92;
+}
+
+/* With a mouse, the arrows rest quieter until the stage is hovered or focused. */
+@media (hover: hover) and (pointer: fine) {
+  .work-slideshow-arrow {
+    opacity: 0.55;
+  }
+
+  .work-slideshow:hover .work-slideshow-arrow,
+  .work-slideshow:focus-within .work-slideshow-arrow {
+    opacity: 0.95;
+  }
+}
+
+/* One gentle nudge of the next arrow the first time a stage scrolls into view. */
+.work-slideshow.is-hinting .work-slideshow-arrow--next {
+  animation: slideshow-hint 1.4s cubic-bezier(0.45, 0, 0.25, 1) 0.6s 2;
+}
+
+@keyframes slideshow-hint {
+  0%,
+  100% {
+    translate: 0 -50%;
+  }
+
+  40% {
+    translate: 0.375rem -50%;
+  }
+}
+
 /* Slide reveals: only active after the homepage script adds `js` and marks each element ready. */
 [data-reveal] {
   --reveal-x: 0rem;
@@ -319,6 +405,10 @@
     translate: none !important;
     clip-path: none !important;
     transition: none !important;
+  }
+
+  .work-slideshow.is-hinting .work-slideshow-arrow--next {
+    animation: none;
   }
 
   .work-slideshow-track,

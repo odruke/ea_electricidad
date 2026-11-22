@@ -106,6 +106,8 @@ export const fr = {
       slideshow: {
         stageLabel:
           'Galerie : {category}. Cliquez ou appuyez sur Espace pour mettre en pause ou reprendre.',
+        previous: 'Photos précédentes',
+        next: 'Photos suivantes',
       },
     },
   },

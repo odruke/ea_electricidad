@@ -103,6 +103,8 @@ export const en = {
       },
       slideshow: {
         stageLabel: '{category} gallery. Click or press Space to pause or resume.',
+        previous: 'Previous photos',
+        next: 'Next photos',
       },
     },
   },

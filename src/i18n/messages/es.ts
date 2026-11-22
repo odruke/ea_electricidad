@@ -104,6 +104,8 @@ export const es = {
       slideshow: {
         stageLabel:
           'Galería de {category}. Pulse o use la barra espaciadora para pausar o reanudar.',
+        previous: 'Fotos anteriores',
+        next: 'Fotos siguientes',
       },
     },
   },

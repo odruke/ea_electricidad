@@ -62,8 +62,9 @@ describe('translation dictionaries', () => {
     for (const dictionary of Object.values(dictionaries)) {
       expect(dictionary.home.work.slideshow.stageLabel).toContain('{category}');
       expect(dictionary.home.work.slideshow).not.toHaveProperty('status');
-      expect(dictionary.home.work.slideshow).not.toHaveProperty('previous');
-      expect(dictionary.home.work.slideshow).not.toHaveProperty('next');
+      // Arrow navigation restored by the owner (2026-11-22): previous/next labels only.
+      expect(dictionary.home.work.slideshow.previous).toBeTruthy();
+      expect(dictionary.home.work.slideshow.next).toBeTruthy();
       expect(dictionary.home.work.slideshow).not.toHaveProperty('pause');
       expect(dictionary.home.work.slideshow).not.toHaveProperty('play');
 

@@ -42,8 +42,6 @@ const folders = ['ilumination', 'electricity', 'climatization'] as const;
 
 const removedSlideshowUi = [
   '[data-slideshow-controls]',
-  '[data-slideshow-prev]',
-  '[data-slideshow-next]',
   '[data-slideshow-toggle]',
   '[data-slideshow-counter]',
   '[data-slideshow-status]',
