@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# Smoke test for the multi-container stack.
+# Smoke test for the site container.
 #
-# With no BASE_URL it targets the local Compose stack at http://127.0.0.1 and
-# also verifies the Docker topology (services healthy, only the edge publishes
-# ports, edge reaches web by DNS, neither image contains Node.js).
+# With a local BASE_URL (default http://127.0.0.1:8080, published by `make up-local`) it
+# also verifies the Docker topology: `web` is running and healthy, joins the shared
+# `proxy` network as `ea-electricidad-web`, publishes no port beyond loopback, and its
+# image contains no Node.js.
 #
-# With BASE_URL set to a remote host it only runs the HTTP assertions.
+# With BASE_URL set to the public domain (through the shared VPS reverse proxy) it only
+# runs the HTTP assertions, which then also cover the proxy's TLS forwarding.
 set -uo pipefail
 
-BASE_URL="${BASE_URL:-http://127.0.0.1}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:8080}"
 BASE_URL="${BASE_URL%/}"
-EDGE_IMAGE="${EDGE_IMAGE:-ea-electricidad-edge:local}"
 WEB_IMAGE="${WEB_IMAGE:-ea-electricidad-web:local}"
+PROXY_NETWORK="${PROXY_NETWORK:-proxy}"
+PROXY_ALIAS="${PROXY_ALIAS:-ea-electricidad-web}"
 
 failures=0
 
@@ -108,36 +111,39 @@ check_service_running() {
 }
 
 check_topology() {
+  local container_id bindings aliases
+
   if ! docker info >/dev/null 2>&1; then
-    fail 'Docker daemon is not reachable (start the stack or set BASE_URL to a remote host)'
+    fail 'Docker daemon is not reachable (start the site or set BASE_URL to the public domain)'
     return
   fi
 
   running_services="$(docker compose ps --status running --services 2>/dev/null || true)"
 
-  check_service_running edge
   check_service_running web
 
-  if docker compose port web 8080 >/dev/null 2>&1; then
-    fail 'web publishes a host port (it must use expose only)'
-  else
-    pass 'web has no published host port'
+  container_id="$(docker compose ps -q web 2>/dev/null || true)"
+  if [ -z "$container_id" ]; then
+    return
   fi
 
-  if [ -n "$(docker compose port edge 80 2>/dev/null || true)" ] &&
-    [ -n "$(docker compose port edge 443 2>/dev/null || true)" ]; then
-    pass 'edge publishes TCP 80 and 443'
+  # Only the local override may publish, and only on loopback.
+  bindings="$(docker inspect --format '{{range $p, $b := .NetworkSettings.Ports}}{{range $b}}{{.HostIp}} {{end}}{{end}}' "$container_id" 2>/dev/null || true)"
+  if [ -z "${bindings// /}" ]; then
+    pass 'web publishes no host port'
+  elif printf '%s\n' $bindings | grep -qvE '^(127\.0\.0\.1|::1)$'; then
+    fail "web publishes a port beyond loopback ($bindings)"
   else
-    fail 'edge does not publish both TCP 80 and 443'
+    pass 'web publishes only on loopback (local override)'
   fi
 
-  if docker compose exec -T edge wget -qO- http://web:8080/healthz 2>/dev/null | grep -q '^ok$'; then
-    pass 'edge resolves and reaches web over the private network'
+  aliases="$(docker inspect --format "{{with index .NetworkSettings.Networks \"$PROXY_NETWORK\"}}{{range .Aliases}}{{.}} {{end}}{{end}}" "$container_id" 2>/dev/null || true)"
+  if printf '%s' "$aliases" | grep -qw "$PROXY_ALIAS"; then
+    pass "web joins the '$PROXY_NETWORK' network as '$PROXY_ALIAS'"
   else
-    fail 'edge cannot reach web:8080 over the private network'
+    fail "web is not on the '$PROXY_NETWORK' network with alias '$PROXY_ALIAS'"
   fi
 
-  check_image_has_no_node "$EDGE_IMAGE"
   check_image_has_no_node "$WEB_IMAGE"
 }
 

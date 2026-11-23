@@ -1,12 +1,10 @@
 name: ea-electricidad
 
 services:
-  # Public entry point. Terminates TLS, applies headers and redirects, and
-  # proxies site traffic to the internal web service. This is the only service
-  # that publishes host ports.
-
-  # Internal static site. Reserved for the future backend: same network, no
-  # published ports, routed through the edge (see Caddyfile).
+  # Static site with its own headers, redirects and localized 404 (Caddyfile.web).
+  # No host port: the shared VPS reverse proxy (a separate project) reaches it on the
+  # external `proxy` network as `ea-electricidad-web:8080` and only terminates TLS.
+  # `app` stays private to this project, for a future backend.
   web:
     image: ea-electricidad-web:local
     build:

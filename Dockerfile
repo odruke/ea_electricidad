@@ -23,18 +23,19 @@ ENV SITE_ENV=$SITE_ENV
 
 RUN pnpm build
 
-# Internal static site. Never published to the host.
+# Static site plus its own HTTP policy (headers, redirects, caching, localized 404).
+# Never published to the host: the shared VPS reverse proxy reaches it on the `proxy`
+# network and only terminates TLS.
 FROM caddy:2-alpine AS web
 
 # The official caddy image marks the binary with `cap_net_bind_service=+ep`. Under an empty
 # capability bounding set (`cap_drop: ALL`) execve fails with EPERM, so the container cannot
-# start. Neither service needs the file capability: the edge gets NET_BIND_SERVICE from
-# Compose and this server listens on 8080. Strip it when present so hardening stays usable.
+# start. This server listens on 8080 and needs no capability, so strip it when present.
 RUN if getcap /usr/bin/caddy | grep -q .; then setcap -r /usr/bin/caddy; fi
 
 COPY Caddyfile.web /etc/caddy/Caddyfile
-COPY --from=build /app/dist /srv
+RUN caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
-ENV SITE_ADDRESS=:8080
+COPY --from=build /app/dist /srv
 
 EXPOSE 8080

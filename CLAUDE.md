@@ -17,17 +17,17 @@ pnpm exec vitest run -t "swapLocale"                # tests matching a name
 pnpm test:e2e            # builds, then Playwright (chromium) against `astro preview` on :4321
 pnpm exec playwright test tests/e2e/homepage.spec.ts -g "slideshow"   # single e2e (needs a prior `pnpm build`)
 pnpm format              # Prettier write (includes .astro via prettier-plugin-astro)
-make build && make up && make smoke   # container stack; the agent has no Docker access, so ask the owner
+make build && make up-local && make smoke   # container on 127.0.0.1:8080; the agent has no Docker access, so ask the owner
 ```
 
 E2E pitfall: Astro 7 preview daemonizes, so Playwright may report an early webServer exit. Workaround: run `pnpm preview --host 127.0.0.1 --port 4321`, then `BASE_URL=http://127.0.0.1:4321 pnpm exec playwright test`, and stop it with `pnpm exec astro preview stop`.
 
 ## Architecture
 
-**Static Astro site served by Caddy, with no Node at runtime.** `astro build` emits `dist/` (`output: 'static'`, `trailingSlash: 'always'`). The Dockerfile builds it and copies it into a Caddy image. `compose.yaml` runs two Caddy containers on a private `app` network:
+**Static Astro site served by Caddy, with no Node at runtime.** `astro build` emits `dist/` (`output: 'static'`, `trailingSlash: 'always'`). The Dockerfile builds it and copies it into a Caddy image (validating the Caddyfile at build time). `compose.yaml` runs a single `web` container:
 
-- `edge` (`Caddyfile`) is the only service that publishes ports. It handles TLS, security headers/CSP, root and trailing-slash redirects, compression and the reverse proxy. `/api/*` is reserved for a future backend on the same network.
-- `web` (`Caddyfile.web`) is an internal static server (`expose: 8080`) that serves the localized 404 pages.
+- TLS and public ports belong to a **shared Caddy reverse proxy**, a separate project on the VPS that serves several sites. It reaches this site on the external `proxy` Docker network as `ea-electricidad-web:8080` and only terminates TLS and forwards.
+- `web` (`Caddyfile.web`) owns the site's whole HTTP policy: security headers/CSP (re-imported in `handle_errors`), root and trailing-slash redirects, `/_astro/*` immutable caching, compression, `/healthz`, and the localized 404 pages. It publishes no port; `compose.local.yaml` adds `127.0.0.1:8080` for local tests only. `/api/*` is reserved for a future backend on the private `app` network, routed from `Caddyfile.web`.
 
 Assets and stylesheets are never inlined (`assetsInlineLimit: 0`, `inlineStylesheets: 'never'`) so the strict CSP can forbid inline code. Keep it that way: no inline `<script>`/`<style>` that would need `unsafe-inline`.
 
