@@ -4,9 +4,11 @@ Static, multilingual website for **EA electricidad y multiservicios**, an indepe
 low-voltage electrical installer based in Calpe, Alicante.
 
 The site is built with Astro, exported as static HTML/CSS/JS, and served in production by
-two Docker containers: a public Caddy **edge** proxy and an internal Caddy **web** server on
-a private network. Only the edge publishes ports. The public site does **not** require
-Node.js at runtime.
+one Docker container: a Caddy **web** server that holds the site and its HTTP policy
+(security headers, redirects, caching, localized 404 pages). It publishes no port. A
+**shared reverse proxy**, a separate Caddy project on the VPS that serves several sites,
+terminates TLS and forwards this site's domain to it over the external `proxy` Docker
+network. The public site does **not** require Node.js at runtime.
 
 - Spanish (`es`) is the default locale.
 - English (`en`) and French (`fr`) are also available.
@@ -18,20 +20,20 @@ database, analytics, cookies, or CMS. The quote form is planned for a later phas
 
 ## Stack
 
-| Concern         | Choice                                             |
-| --------------- | -------------------------------------------------- |
-| Framework       | Astro (static output)                              |
-| Language        | TypeScript (strict)                                |
-| Styling         | Tailwind CSS v4 with CSS theme tokens              |
-| Translations    | Typed TypeScript dictionaries (`es`, `en`, `fr`)   |
-| Unit tests      | Vitest                                             |
-| Browser tests   | Playwright + `@axe-core/playwright`                |
-| Lint / format   | ESLint + Prettier                                  |
-| Package manager | pnpm, with committed `pnpm-lock.yaml`              |
-| Build runtime   | Node.js 24 LTS                                     |
-| Production      | Caddy edge proxy + internal Caddy static container |
-| Image builds    | Docker Compose, on the host that runs the stack    |
-| CI              | None — checks run locally before deploying         |
+| Concern         | Choice                                           |
+| --------------- | ------------------------------------------------ |
+| Framework       | Astro (static output)                            |
+| Language        | TypeScript (strict)                              |
+| Styling         | Tailwind CSS v4 with CSS theme tokens            |
+| Translations    | Typed TypeScript dictionaries (`es`, `en`, `fr`) |
+| Unit tests      | Vitest                                           |
+| Browser tests   | Playwright + `@axe-core/playwright`              |
+| Lint / format   | ESLint + Prettier                                |
+| Package manager | pnpm, with committed `pnpm-lock.yaml`            |
+| Build runtime   | Node.js 24 LTS                                   |
+| Production      | Caddy static container behind a shared VPS proxy |
+| Image builds    | Docker Compose, on the host that runs the stack  |
+| CI              | None — checks run locally before deploying       |
 
 ## Prerequisites
 
@@ -60,12 +62,14 @@ The dev server listens on `http://localhost:4321`. The root path redirects to `/
 
 ### Environment variables
 
-| Variable       | Scope         | Description                                                                 |
-| -------------- | ------------- | --------------------------------------------------------------------------- |
-| `SITE_URL`     | Build time    | Absolute site URL used for canonical links, hreflang and sitemap.           |
-| `SITE_ENV`     | Build time    | `staging` (default) or `production`. Controls `noindex`/robots.             |
-| `SITE_ADDRESS` | Caddy runtime | Host and TLS address used by the edge, e.g. `:80` or `https://example.com`. |
-| `BASE_URL`     | Smoke script  | Target URL for `scripts/smoke.sh`.                                          |
+| Variable   | Scope        | Description                                                       |
+| ---------- | ------------ | ----------------------------------------------------------------- |
+| `SITE_URL` | Build time   | Absolute site URL used for canonical links, hreflang and sitemap. |
+| `SITE_ENV` | Build time   | `staging` (default) or `production`. Controls `noindex`/robots.   |
+| `BASE_URL` | Smoke script | Target URL for `scripts/smoke.sh` (default `127.0.0.1:8080`).     |
+
+The domain, TLS certificates and public ports are configured in the shared reverse proxy
+project, not here; `SITE_URL` must match the domain that proxy serves.
 
 Notes:
 
@@ -75,8 +79,9 @@ Notes:
   indexing.
 - `SITE_URL` and `SITE_ENV` are baked into the build. Changing the domain or indexing mode
   requires a new image build (`make build`) before `make up`.
-- `.env.example` ships local defaults (`http://localhost`, `SITE_ADDRESS=:80`) with a
-  generic production-style example commented out. Never commit a real `.env`.
+- `.env.example` ships local defaults (`http://localhost`, `staging`) with a generic
+  production-style example commented out. Never commit a real `.env`. A leftover
+  `SITE_ADDRESS` in an older `.env` is ignored.
 
 ## Commands
 
@@ -101,7 +106,8 @@ pnpm preview
 ```
 
 The static output is written to `dist/`. Astro's preview server is for local verification
-only; production behavior (redirects, 404 status, headers, compression) is handled by Caddy.
+only; production behavior (redirects, 404 status, headers, compression) is handled by the
+Caddy `web` container (`Caddyfile.web`).
 
 ### Tests
 
@@ -117,130 +123,146 @@ responsive overflow, axe accessibility checks, and no-JavaScript behavior.
 
 ## Docker and Compose
 
-The stack has two services built from one multi-stage `Dockerfile`:
+This project ships one service, built from a multi-stage `Dockerfile`:
 
 1. A Node.js 24 + pnpm build stage produces `dist/` with `SITE_URL`/`SITE_ENV` build
    arguments.
 2. The `web` target copies the static output and `Caddyfile.web` into a Caddy image,
-   listens on `:8080`, and serves the site with localized 404 pages.
-3. The `edge` target copies `Caddyfile` into a Caddy image and handles TLS, redirects,
-   security headers, compression, logs, and reverse proxying to `web:8080`.
+   validates the Caddyfile at build time, and listens on `:8080`.
 
-Both final stages strip the `cap_net_bind_service` file capability that the official Caddy
+`Caddyfile.web` owns the whole HTTP policy of this site, so the shared proxy needs no
+site-specific rules: security headers and CSP (also on error responses), `/` → `/es/`,
+trailing-slash redirects, immutable caching for `/_astro/*`, zstd/gzip compression, JSON
+access logs, `/healthz`, and the localized 404 pages with HTTP 404. It trusts
+`X-Forwarded-For` from private ranges, so the logs show the real client address.
+
+The final stage strips the `cap_net_bind_service` file capability that the official Caddy
 image sets on its binary. When the capability bounding set is empty (`cap_drop: ALL`), Linux
-fails `execve` with `operation not permitted`, so the container never starts; neither service
-needs the file capability, because the edge receives `NET_BIND_SERVICE` from Compose and the
-web server listens on 8080.
+fails `execve` with `operation not permitted`, so the container would never start; the server
+listens on 8080 and needs no capability.
 
-Neither final image contains Node.js, package manager, source code, tests, or environment
-files. There is no image registry: every host builds both images from source with the same
-`compose.yaml` and `Dockerfile`.
+The final image contains no Node.js, package manager, source code, tests, or environment
+files. There is no image registry: the host builds the image from source.
 
 ```text
 Internet
-  │  TCP 80/443 + UDP 443
+  │  TCP 80/443 (+ UDP 443)
   ▼
-edge · Caddy · only published ports
-  ├─ TLS, compression, security headers
-  ├─ / → /es/, trailing-slash redirects
-  ├─ /healthz
-  └─ reverse_proxy → web:8080
-       │ private app network
+shared reverse proxy · Caddy · separate project on the VPS, serves several sites
+  ├─ TLS certificates, public ports
+  └─ <domain> → reverse_proxy ea-electricidad-web:8080
+       │ external `proxy` network
        ▼
-web · Caddy · expose 8080 only, no host port
+web · Caddy · this project · no host port
+  ├─ security headers + CSP, redirects, caching, compression
+  ├─ /healthz
   ├─ static dist/
   └─ localized 404 pages with HTTP 404
+       │ private `app` network (reserved for a future backend)
 ```
 
-`compose.yaml` fixes the Compose project name `ea-electricidad`, so container and network
-names are predictable. Both services join the private bridge network `app` and resolve each
-other by service name.
+`compose.yaml` fixes the Compose project name `ea-electricidad`. `web` (image
+`ea-electricidad-web:local`):
 
-`edge` (image `ea-electricidad-edge:local`):
-
-- publishes TCP 80, TCP 443 and UDP 443 for HTTP/3
-- waits for a healthy `web` through `depends_on: condition: service_healthy`
-- mounts the persistent `caddy_data` and `caddy_config` volumes
-- health check on the internal `:8081/healthz` listener
-- bounded JSON logs, `no-new-privileges`, only `NET_BIND_SERVICE`
-
-`web` (image `ea-electricidad-web:local`):
-
-- declares `expose: ['8080']` and never `ports`
+- has no `ports`; it joins the external `proxy` network with the alias
+  `ea-electricidad-web`, and the private `app` bridge network
 - health check on `:8080/healthz`
 - bounded JSON logs, `no-new-privileges`, all capabilities dropped
 
+`compose.local.yaml` is a local-only override that publishes `127.0.0.1:8080`, for testing
+without the shared proxy. Never load it on the VPS.
+
+### Shared reverse proxy
+
+The proxy lives in its own project and repository. This project only expects:
+
+- an external Docker network named `proxy` (`make network` creates it if missing; the proxy
+  project must join the same network);
+- a site block that forwards the domain to the alias, with no site policy of its own:
+
+  ```caddyfile
+  example.com {
+  	reverse_proxy ea-electricidad-web:8080
+  }
+
+  www.example.com {
+  	redir https://example.com{uri} 308
+  }
+  ```
+
+Do not set security headers, CSP, redirects or caching for this site in the proxy: they
+come from `Caddyfile.web`, and a second copy would drift. Certificates and their volumes
+belong to the proxy project.
+
 ### Make targets
 
-`make help` lists them. They run on the machine that hosts the stack; nothing is specific to
+`make help` lists them. They run on the machine that hosts the site; nothing is specific to
 a particular provider or server.
 
-| Target         | Action                                                           |
-| -------------- | ---------------------------------------------------------------- |
-| `make build`   | Build both service images from the current source.               |
-| `make up`      | Start the stack and wait for health.                             |
-| `make down`    | Stop and remove containers; volumes are preserved.               |
-| `make restart` | Restart containers without rebuilding.                           |
-| `make logs`    | Follow the last 200 log lines from every service.                |
-| `make status`  | Show container state and health for every service.               |
-| `make smoke`   | Run the smoke test; `BASE_URL=...` targets a remote host.        |
-| `make clean`   | Remove containers and application images; volumes are preserved. |
+| Target          | Action                                                               |
+| --------------- | -------------------------------------------------------------------- |
+| `make network`  | Create the external `proxy` network if it does not exist.            |
+| `make build`    | Build the web image from the current source.                         |
+| `make up`       | Start the site behind the shared proxy (no host port), wait healthy. |
+| `make up-local` | Same, plus publish `127.0.0.1:8080` for local tests.                 |
+| `make down`     | Stop and remove the containers.                                      |
+| `make restart`  | Restart containers without rebuilding.                               |
+| `make logs`     | Follow the last 200 log lines.                                       |
+| `make status`   | Show container state and health.                                     |
+| `make smoke`    | Run the smoke test; `BASE_URL=https://<domain>` goes via the proxy.  |
+| `make clean`    | Remove the containers and the application image.                     |
 
-No target uses `docker compose down -v`. `caddy_data` and `caddy_config` hold the
-certificates and must survive `down` and `clean`.
+The site keeps no state, so `down` and `clean` lose nothing.
 
 ### Quick start
+
+Locally, without the shared proxy:
 
 ```bash
 cp .env.example .env
 make build
-make up
-make status           # edge healthy, web healthy
-make smoke            # http://127.0.0.1
+make up-local
+make status           # web healthy
+make smoke            # http://127.0.0.1:8080
 ```
 
-Locally `.env` sets `SITE_ADDRESS=:80`, so the edge serves plain HTTP on port 80. The web
-container is reachable only on the private `app` network; it has no host port.
+On the VPS, with the shared proxy project running and its site block in place:
+
+```bash
+make build
+make up
+make smoke BASE_URL=https://<domain>
+```
 
 ### Smoke test
 
 ```bash
-make smoke                              # running local stack
-make smoke BASE_URL=https://example.com # any reachable host
+make smoke                              # local site published by `make up-local`
+make smoke BASE_URL=https://example.com # through the shared proxy
 ```
 
-Against a local `BASE_URL` the script also verifies the Docker topology: both services are
-running and healthy, only the edge publishes ports, the edge reaches `web:8080` by service
-DNS, and neither image contains Node.js. For a remote `BASE_URL` it runs only the HTTP
-assertions: health, locales, redirects, localized 404 status/content, security headers
-(including on error pages), immutable asset caching, and compressed responses.
+Against a local `BASE_URL` the script also verifies the Docker topology: `web` is running
+and healthy, joins the `proxy` network as `ea-electricidad-web`, publishes nothing beyond
+loopback, and its image contains no Node.js. Every run checks health, locales, redirects,
+localized 404 status/content, security headers (including on error pages), immutable asset
+caching, and compressed responses; through the public domain this also proves the proxy
+forwards correctly.
 
 ### Adding a future backend
 
-The reserved path prefix is `/api/*`. A future backend such as the quote API in `004` must
-stay on the private network and must not publish a host port:
+The reserved path prefix is `/api/*`. A future backend such as the quote API in `004` stays
+inside this project, on the private `app` network, with no host port:
 
-1. Add a `backend` service to `compose.yaml` on the same `app` network, with `expose` only,
-   a health check, bounded logs, and no `ports`.
-2. Add a health dependency if the public site needs the backend at startup.
-3. In `Caddyfile`, in the `edge` site block, replace the single proxy with ordered handlers:
-
-   ```caddyfile
-   handle /api/* {
-       reverse_proxy backend:3000
-   }
-   handle {
-       reverse_proxy web:8080
-   }
-   ```
-
+1. Add a `backend` service to `compose.yaml` on the `app` network only, with `expose`, a
+   health check, bounded logs, and no `ports`.
+2. Add a health dependency if the site needs the backend at startup.
+3. In `Caddyfile.web`, uncomment the `handle /api/*` block so it proxies to `backend:3000`
+   before the file server.
 4. Rebuild and restart with `make build && make up`.
 5. Extend `scripts/smoke.sh` with assertions for the new prefix.
 
-Because the backend stays behind the edge, `connect-src 'self'` remains valid, no CORS is
-needed, and no additional public hostname or port is introduced. If a future service must
-live in a separate Compose project, attach it to an explicitly shared external network and
-document that choice.
+Because the API is served from the same origin, `connect-src 'self'` remains valid, no CORS
+is needed, and the shared proxy needs no change.
 
 ## Local checks
 
@@ -249,14 +271,14 @@ There is no CI pipeline. Run the checks locally before the owner commits or depl
 ```bash
 pnpm validate      # lint, format check, Astro/TypeScript check, unit tests, build
 pnpm test:e2e      # build + Playwright browser tests
-make build         # both container images
-make up            # start the stack and wait for health
+make build         # the web image
+make up-local      # start it on 127.0.0.1:8080 and wait for health
 make smoke         # HTTP + Docker topology assertions
 ```
 
 `pnpm validate` covers the static site; the `make` steps cover the container path. The smoke
-test fails fast if the topology drifts (an extra published port, an unhealthy service, or
-Node.js leaking into an image).
+test fails fast if the topology drifts (a public port, a missing `proxy` alias, an unhealthy
+service, or Node.js leaking into the image).
 
 ## Git workflow
 
@@ -268,25 +290,24 @@ Node.js leaking into an image).
 
 ## Deployment
 
-Deployment is local-first: the stack is built and started on whatever machine runs it, using
-the quick start above. There is no registry and no remote build: the host compiles both
-images from source. Downtime between a rebuild and a healthy start is expected, but the
-Caddy volumes are preserved.
+The site is built and started on the VPS that runs the shared reverse proxy. There is no
+registry and no remote build: the host compiles the image from source. Downtime between a
+rebuild and a healthy start is expected; the site keeps no state.
 
 ### Using another host
 
-The stack is provider-neutral. Any host with Docker Engine and the Compose plugin works:
+The project is provider-neutral. Any host with Docker Engine and the Compose plugin works:
 
-1. Clone the repository and check out the revision to run.
-2. Create `.env` from `.env.example` and set `SITE_URL`, `SITE_ENV`, and `SITE_ADDRESS` for
-   that host; `chmod 600 .env`.
-3. Make sure inbound TCP 80 and 443 (and UDP 443 for HTTP/3) reach the edge and that ports
-   80/443 are free.
-4. Run `make build && make up`, then `make smoke` locally on that host.
-5. From another machine, verify with `make smoke BASE_URL=https://<host>`.
+1. Run the shared reverse proxy project there (or any proxy on the `proxy` network that
+   forwards the domain to `ea-electricidad-web:8080`).
+2. Clone this repository and check out the revision to run.
+3. Create `.env` from `.env.example` and set `SITE_URL` and `SITE_ENV`; `chmod 600 .env`.
+4. Run `make build && make up`.
+5. Add the site block to the proxy, reload it, and verify with
+   `make smoke BASE_URL=https://<domain>`.
 
 Do not install Node.js or pnpm on the host; the build runs inside the Docker build stage.
-Never publish the `web` port or route traffic around the edge.
+Never publish the `web` port on the VPS or load `compose.local.yaml` there.
 
 ### Rollback
 
@@ -297,16 +318,16 @@ git checkout <known-good-revision>
 make build
 make up
 make status
-make smoke
+make smoke BASE_URL=https://<domain>
 ```
 
 Return to the current branch when ready and rebuild.
 
 ### Domain switch
 
-1. Point the domain's `A`/`AAAA` records at the host.
-2. Set `SITE_URL` and `SITE_ADDRESS` to the production domain.
-3. Set `SITE_ENV=production`.
+1. Point the domain's `A`/`AAAA` records at the VPS.
+2. In the shared proxy project, change the site block to the production domain and reload.
+3. Here, set `SITE_URL` to the production domain and `SITE_ENV=production`.
 4. Run `make build && make up` so the new build arguments are baked in.
 5. Verify HTTPS, canonical URLs, sitemap, and crawlability.
 6. Retire the staging hostname if there is one.
@@ -320,14 +341,15 @@ If the client moves to another static host, mirror the Caddy behavior:
 - Unknown `/es/*`, `/en/*`, `/fr/*` → the matching localized 404 page with HTTP `404`.
 - Other unknown paths → Spanish 404 page with HTTP `404`.
 - Serve static assets from `/_astro/` with long-lived immutable caching.
-- Apply the security headers from the edge `Caddyfile`, including on error responses.
+- Apply the security headers from `Caddyfile.web`, including on error responses.
 - Keep language alternates, canonical URLs, and the generated sitemap intact.
 
 ## Project structure
 
 ```text
 .
-├── public/logo.jpg
+├── public/brand/                  # logos, favicons, share image
+├── public/homepage/               # hero and real job photos
 ├── scripts/smoke.sh
 ├── specs/001-project-foundation/
 ├── src/
@@ -341,10 +363,10 @@ If the client moves to another static host, mirror the Caddy behavior:
 │   └── styles/global.css
 ├── tests/{unit,e2e}/
 ├── astro.config.mjs
-├── Caddyfile                      # public edge: TLS, headers, redirects, proxy
-├── Caddyfile.web                  # internal static server and localized 404
-├── compose.yaml                   # edge + web on the private app network
-├── Dockerfile                     # build stage plus web and edge targets
+├── Caddyfile.web                  # site server: headers, redirects, caching, localized 404
+├── compose.yaml                   # web on the external proxy network (no host port)
+├── compose.local.yaml             # local only: publish 127.0.0.1:8080
+├── Dockerfile                     # build stage plus the web target
 ├── Makefile
 ├── package.json
 └── pnpm-lock.yaml
@@ -354,17 +376,15 @@ If the client moves to another static host, mirror the Caddy behavior:
 
 - The site foundation, translations, pages, tests, container files, and Makefile are in
   place.
-- The runtime is a multi-container Compose stack: a public `edge` and an internal `web` on
-  the private `app` network. Only the edge publishes ports.
-- The images have not yet been built or deployed on the owner's machine because the agent
-  has no Docker socket access; `make build`, `make up`, and the stack smoke test are still
-  unverified end to end. The `web` container is currently restarting in a loop and needs
-  diagnosis from its logs.
-- Deployment is local and owner-managed: no CI, no registry, no remote deploy target. The
-  revision to run is chosen and deployed by the owner.
+- The runtime is one `web` container behind a shared reverse proxy that lives in a separate
+  project on the VPS and serves several sites. This project publishes no port.
+- The agent has no Docker socket access, so `make build`, `make up`, and the smoke test
+  after the 2026-11-23 proxy separation are unverified until the owner runs them.
+- Deployment is owner-managed: no CI, no registry. The revision to run is chosen and
+  deployed by the owner.
 - The quote form, email delivery, uploads, privacy policy, and legal content belong to later
   phases. The `/api/*` prefix and the `app` network are reserved for the future backend but
   no backend is implemented.
-- `public/logo.jpg` is the current brand asset. A vector/transparent version and genuine
-  project photography are still pending.
+- Brand assets (SVG logos, favicons, share image) live in `public/brand/`. The homepage uses
+  genuine EA job photos; other pages still use placeholders.
 - Legal and privacy pages are placeholders and are marked `noindex`.

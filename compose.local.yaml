@@ -1,0 +1,9 @@
+# Local-only override: publishes the site on the loopback interface so it can be tested
+# without the shared reverse proxy. Never use it on the VPS (`make up` does not load it).
+#
+#   make up-local    # = docker compose -f compose.yaml -f compose.local.yaml up -d --wait
+#   make smoke       # http://127.0.0.1:8080
+services:
+  web:
+    ports:
+      - '127.0.0.1:8080:8080'
